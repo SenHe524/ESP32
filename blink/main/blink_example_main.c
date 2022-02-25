@@ -1,4 +1,4 @@
-/* Blink Example112121165465465
+/* Blink Example
 
    This example code is in the Public Domain (or CC0 licensed, at your option.)
 
