@@ -18,7 +18,7 @@ set(HEAD_HASH)
 file(READ "C:/Users/AUTO_1/Desktop/ESP32Code/Timer_Gpio_Test_2.25/build/CMakeFiles/git-data/HEAD" HEAD_CONTENTS LIMIT 1024)
 
 string(STRIP "${HEAD_CONTENTS}" HEAD_CONTENTS)
-set(GIT_DIR "C:/Users/AUTO_1/Desktop/ESP32Code/Timer_Gpio_Test_2.25/.git")
+set(GIT_DIR "C:/Users/AUTO_1/Desktop/ESP32Code/.git")
 # handle git-worktree
 if(EXISTS "${GIT_DIR}/commondir")
 	file(READ "${GIT_DIR}/commondir" GIT_DIR_NEW LIMIT 1024)
