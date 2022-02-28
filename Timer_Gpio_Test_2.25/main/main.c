@@ -5,6 +5,9 @@
 #include "driver/timer.h"
 #include "driver/gpio.h"
 
+#define GPIO_LED_IO 2 // LED
+#define GPIO_LED_PIN_SEL (1ULL << GPIO_LED_IO)
+
 #define GPIO_OUTPUT_IO_0 18 //蜂鸣器Gpio口
 #define GPIO_OUTPUT_IO_1 19 //开关Gpio口
 #define GPIO_OUTPUT_PIN_SEL ((1ULL << GPIO_OUTPUT_IO_0) | (1ULL << GPIO_OUTPUT_IO_1))
@@ -47,11 +50,13 @@ static void IRAM_ATTR gpio_isr_handler(void *arg); // Gpio的ISR回调函数
 static void gpio_task_example(void *arg);          // Gpio任务
 
 void Buzzer_control(timer_test_event_info_t evt);
+void LED_init(void);
 
 void app_main(void)
 {
     timer_Queue_t = xQueueCreate(10, sizeof(timer_test_event_info_t));
 
+    LED_init();
     gpio_intr_init();
     timer_init_test(TIMER_GROUP_0, TIMER_0, false, 3);
     timer_init_test(TIMER_GROUP_0, TIMER_1, false, 5);
@@ -60,8 +65,11 @@ void app_main(void)
     while (1)
     {
         cnt++;
+
+        /*LED每隔10秒亮灭 定时器每隔 (10-5) +  (10)启动一次   */
         gpio_set_level(GPIO_OUTPUT_IO_0, cnt % 2);
-        vTaskDelay(5000 / portTICK_RATE_MS);
+        gpio_set_level(GPIO_LED_IO, cnt % 2);
+        vTaskDelay(10000 / portTICK_RATE_MS);
     }
 }
 
@@ -176,7 +184,7 @@ void gpio_intr_init(void)
     io_conf.pull_up_en = 0;                     // disable pull-up mode
     gpio_config(&io_conf);                      // configure GPIO with the given settings
 
-    io_conf.intr_type = GPIO_INTR_POSEDGE;                     // interrupt of rising edge
+    io_conf.intr_type = GPIO_INTR_POSEDGE;     // interrupt of rising edge
     io_conf.pin_bit_mask = GPIO_INPUT_PIN_SEL; // bit mask of the pins, use GPIO4/5 here
     io_conf.mode = GPIO_MODE_INPUT;            // set as input mode
     io_conf.pull_up_en = 0;                    // enable pull-up mode
@@ -222,4 +230,15 @@ void Buzzer_control(timer_test_event_info_t evt)
     {
         printf("Buezzer!\n");
     }
+}
+
+void LED_init(void)
+{
+    gpio_config_t io_conf = {};
+    io_conf.intr_type = GPIO_INTR_DISABLE;   // disable interrupt
+    io_conf.mode = GPIO_MODE_OUTPUT;         // set as output mode
+    io_conf.pin_bit_mask = GPIO_LED_PIN_SEL; // bit mask of the pins that you want to set
+    io_conf.pull_down_en = 0;                // disable pull-down mode
+    io_conf.pull_up_en = 0;                  // disable pull-up mode
+    gpio_config(&io_conf);
 }
