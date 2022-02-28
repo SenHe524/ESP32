@@ -56,9 +56,12 @@ void app_main(void)
     timer_init_test(TIMER_GROUP_0, TIMER_0, false, 3);
     timer_init_test(TIMER_GROUP_0, TIMER_1, false, 5);
     xTaskCreate(timer_task_example, "timer_task_example", 2048, NULL, 10, NULL);
+    int cnt = 0;
     while (1)
     {
-        vTaskDelay(10);
+        cnt++;
+        gpio_set_level(GPIO_OUTPUT_IO_0, cnt % 2);
+        vTaskDelay(5000 / portTICK_RATE_MS);
     }
 }
 
@@ -173,11 +176,11 @@ void gpio_intr_init(void)
     io_conf.pull_up_en = 0;                     // disable pull-up mode
     gpio_config(&io_conf);                      // configure GPIO with the given settings
 
-    io_conf.intr_type = 2;                     // interrupt of rising edge
+    io_conf.intr_type = GPIO_INTR_POSEDGE;                     // interrupt of rising edge
     io_conf.pin_bit_mask = GPIO_INPUT_PIN_SEL; // bit mask of the pins, use GPIO4/5 here
     io_conf.mode = GPIO_MODE_INPUT;            // set as input mode
     io_conf.pull_up_en = 0;                    // enable pull-up mode
-    io_conf.pull_down_en = 0;                  // disable pull-down mode
+    io_conf.pull_down_en = 1;                  // disable pull-down mode
     gpio_config(&io_conf);
 
     // change gpio intrrupt type for one pin
