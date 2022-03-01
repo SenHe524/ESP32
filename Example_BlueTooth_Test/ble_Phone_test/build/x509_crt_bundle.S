@@ -1,4 +1,4 @@
-/* * Data converted from C:/Users/AUTO_1/Desktop/ESP32Code/BlueTooth_Test/ble_Phone_test/build/esp-idf/mbedtls/x509_crt_bundle
+/* * Data converted from C:/Users/AUTO_1/Desktop/ESP32Code/Example_BlueTooth_Test/ble_Phone_test/build/esp-idf/mbedtls/x509_crt_bundle
  */
 .data
 .section .rodata.embedded

@@ -131,6 +131,8 @@ void app_main(void)
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK( ret );
+
+
     esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
 
     ret = esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT);
@@ -162,5 +164,10 @@ void app_main(void)
      * esp_bt_controller_mem_release(ESP_BT_MODE_BTDM);
      */
 
+    /*
+     * 使用xTaskCreatePinnedToCore或xTaskCreateStaticPinnedToCore在ESP-IDF FreeRTOS中创建任务
+     * 这两个函数的最后一个参数：xCoreID时指定任务运行在哪个核上
+     * PR0_CPU为0，APP_CPU为1，tskNO_AFFINITY允许任务在两者上运行
+     */
     xTaskCreatePinnedToCore(&bleAdvtTask, "bleAdvtTask", 2048, NULL, 5, NULL, 0);
 }

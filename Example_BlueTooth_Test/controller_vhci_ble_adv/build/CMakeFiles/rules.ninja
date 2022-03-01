@@ -1599,7 +1599,7 @@ rule C_STATIC_LIBRARY_LINKER____idf_hci_common_component_
 # Rule for re-running cmake.
 
 rule RERUN_CMAKE
-  command = E:\Espressif\tools\cmake\3.20.3\bin\cmake.exe --regenerate-during-build -SC:\Users\AUTO_1\Desktop\ESP32Code\BlueTooth_Test\controller_vhci_ble_adv -BC:\Users\AUTO_1\Desktop\ESP32Code\BlueTooth_Test\controller_vhci_ble_adv\build
+  command = E:\Espressif\tools\cmake\3.20.3\bin\cmake.exe --regenerate-during-build -SC:\Users\AUTO_1\Desktop\ESP32Code\Example_BlueTooth_Test\controller_vhci_ble_adv -BC:\Users\AUTO_1\Desktop\ESP32Code\Example_BlueTooth_Test\controller_vhci_ble_adv\build
   description = Re-running CMake...
   generator = 1
 

@@ -39,7 +39,7 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
-  include("C:/Users/AUTO_1/Desktop/ESP32Code/BlueTooth_Test/controller_vhci_ble_adv/build/esp-idf/esp_system/port/soc/esp32/cmake_install.cmake")
+  include("C:/Users/AUTO_1/Desktop/ESP32Code/Example_BlueTooth_Test/controller_vhci_ble_adv/build/esp-idf/esp_system/port/soc/esp32/cmake_install.cmake")
 
 endif()
 
