@@ -1,4 +1,4 @@
-# Install script for directory: C:/Users/AUTO_1/Desktop/ESP32Code/BlueTooth_Test/blufi
+# Install script for directory: C:/Users/AUTO_1/Desktop/ESP32Code/Example_BlueTooth_Test/blufi
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -39,7 +39,7 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
-  include("C:/Users/AUTO_1/Desktop/ESP32Code/BlueTooth_Test/blufi/build/esp-idf/cmake_install.cmake")
+  include("C:/Users/AUTO_1/Desktop/ESP32Code/Example_BlueTooth_Test/blufi/build/esp-idf/cmake_install.cmake")
 
 endif()
 
@@ -51,5 +51,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "C:/Users/AUTO_1/Desktop/ESP32Code/BlueTooth_Test/blufi/build/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "C:/Users/AUTO_1/Desktop/ESP32Code/Example_BlueTooth_Test/blufi/build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

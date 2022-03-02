@@ -1,4 +1,4 @@
-# Install script for directory: C:/Users/AUTO_1/Desktop/ESP32Code/BlueTooth_Test/blufi/main
+# Install script for directory: C:/Users/AUTO_1/Desktop/ESP32Code/Example_BlueTooth_Test/blufi/main
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
