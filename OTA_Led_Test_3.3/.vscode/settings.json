@@ -8,6 +8,20 @@
   ],
   "files.associations": {
     "ota_test.h": "c",
-    "protocol_examples_common.h": "c"
+    "protocol_examples_common.h": "c",
+    "esp_err.h": "c",
+    "*.ipp": "c",
+    "*.inc": "c",
+    "connect.h": "c",
+    "regex": "c",
+    "array": "cpp",
+    "chrono": "cpp",
+    "functional": "cpp",
+    "istream": "cpp",
+    "ostream": "cpp",
+    "ratio": "cpp",
+    "tuple": "cpp",
+    "type_traits": "cpp",
+    "utility": "cpp"
   }
 }

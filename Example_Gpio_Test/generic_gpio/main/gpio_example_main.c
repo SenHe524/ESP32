@@ -118,36 +118,36 @@ void app_main(void)
     
     while(1) {
         printf("cnt: %d\n", cnt++);
-        vTaskDelay(1000 / portTICK_RATE_MS);//延时1s
+        vTaskDelay(10 / portTICK_RATE_MS);//延时1s
 
         // 注：若想设置Gpio口的电平，需先设置为输出模式
         // 注：若想读取Gpio口的电平，需先设置为输入模式
-        gpio_set_direction(GPIO_OUTPUT_IO_0,GPIO_MODE_OUTPUT);
-        gpio_set_level(GPIO_OUTPUT_IO_0, cnt % 2);//设置GPIO_OUTPUT_IO_0为 高/低电平
-        gpio_set_direction(GPIO_OUTPUT_IO_0,GPIO_MODE_INPUT);
-        printf("Gpio_18 leve：%d\n", gpio_get_level(GPIO_OUTPUT_IO_0));
+        // gpio_set_direction(GPIO_OUTPUT_IO_0,GPIO_MODE_OUTPUT);
+        // gpio_set_level(GPIO_OUTPUT_IO_0, cnt % 2);//设置GPIO_OUTPUT_IO_0为 高/低电平
+        // gpio_set_direction(GPIO_OUTPUT_IO_0,GPIO_MODE_INPUT);
+        // printf("Gpio_18 leve：%d\n", gpio_get_level(GPIO_OUTPUT_IO_0));
 
-        gpio_set_direction(GPIO_OUTPUT_IO_1,GPIO_MODE_OUTPUT);
-        gpio_set_level(GPIO_OUTPUT_IO_1, cnt % 2);//设置GPIO_OUTPUT_IO_1为 高/低电平
-        gpio_set_direction(GPIO_OUTPUT_IO_1,GPIO_MODE_INPUT);
-        printf("Gpio_19 leve：%d\n", gpio_get_level(GPIO_OUTPUT_IO_1));
+        // gpio_set_direction(GPIO_OUTPUT_IO_1,GPIO_MODE_OUTPUT);
+        // gpio_set_level(GPIO_OUTPUT_IO_1, cnt % 2);//设置GPIO_OUTPUT_IO_1为 高/低电平
+        // gpio_set_direction(GPIO_OUTPUT_IO_1,GPIO_MODE_INPUT);
+        // printf("Gpio_19 leve：%d\n", gpio_get_level(GPIO_OUTPUT_IO_1));
 
         // // 测试蜂鸣器
-        // if(cnt < 1000)
-        // {
-        //     gpio_set_direction(GPIO_OUTPUT_IO_0,GPIO_MODE_OUTPUT);
-        //     gpio_set_level(GPIO_OUTPUT_IO_0,0);
-        //     vTaskDelay(1 / portTICK_RATE_MS);
-        //     gpio_set_level(GPIO_OUTPUT_IO_0,1);
-        //     vTaskDelay(1 / portTICK_RATE_MS);
+        if(cnt < 1000)
+        {
+            gpio_set_direction(GPIO_OUTPUT_IO_0,GPIO_MODE_OUTPUT);
+            gpio_set_level(GPIO_OUTPUT_IO_0,0);
+            vTaskDelay(1 / portTICK_RATE_MS);
+            gpio_set_level(GPIO_OUTPUT_IO_0,1);
+            vTaskDelay(1 / portTICK_RATE_MS);
             
-        // }
-        // else
-        // {
-        //     vTaskDelay(2 / portTICK_RATE_MS);
-        // }
-        // cnt++;
-        // cnt %= 2000;
+        }
+        else
+        {
+            vTaskDelay(2 / portTICK_RATE_MS);
+        }
+        cnt++;
+        cnt %= 2000;
 
     }
 }

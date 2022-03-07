@@ -75,7 +75,7 @@ static void event_handler(void *arg, esp_event_base_t event_base,
 
 void wifi_init_sta(void)
 {
-    s_wifi_event_group = xEventGroupCreate();//作用暂时未知
+    s_wifi_event_group = xEventGroupCreate();//创建一个事件组
 
 //  s1.1：主任务通过调用函数 esp_netif_init() 创建一个 LwIP 核心任务，并初始化 LwIP 相关工作。
 

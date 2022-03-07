@@ -1,4 +1,4 @@
-/* * Data converted from C:/Users/AUTO_1/Desktop/ESP32Code/ADC_Test/adc/build/esp-idf/mbedtls/x509_crt_bundle
+/* * Data converted from C:/Users/AUTO_1/Desktop/ESP32Code/Example_ADC_Test/adc/build/esp-idf/mbedtls/x509_crt_bundle
  */
 .data
 .section .rodata.embedded

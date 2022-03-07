@@ -6,7 +6,7 @@
     "config_defaults":    "C:/Users/AUTO_1/Desktop/ESP32Code/OTA_Led_Test_3.3/sdkconfig.defaults",
     "app_elf":            "Ultrasonic_cleaners.elf",
     "app_bin":            "Ultrasonic_cleaners.bin",
-    "git_revision":       "v4.4-1-g1622617",
+    "git_revision":       "v4.4-1-g1622617-dirty",
     "target":             "esp32",
     "rev":                "0",
     "phy_data_partition": "",

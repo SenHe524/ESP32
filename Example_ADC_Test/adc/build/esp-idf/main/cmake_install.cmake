@@ -1,4 +1,4 @@
-# Install script for directory: C:/Users/AUTO_1/Desktop/ESP32Code/ADC_Test/adc/main
+# Install script for directory: C:/Users/AUTO_1/Desktop/ESP32Code/Example_ADC_Test/adc/main
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
