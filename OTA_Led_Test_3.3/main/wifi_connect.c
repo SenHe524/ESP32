@@ -94,15 +94,12 @@ void wifi_init_sta(void)
                 .required = false},
         },
     };
-    ESP_LOGI(TAG,"I'm here!1\n");
     //设置模式为站（station）模式
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     //初始化Station模式的Wifi配置
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
-    ESP_LOGI(TAG,"I'm here!2\n");
     //启动wifi
     ESP_ERROR_CHECK(esp_wifi_start());
-    ESP_LOGI(TAG,"I'm here!3\n");
     ESP_LOGI(TAG, "wifi_init_sta finished.");
 
     /* Waiting until either the connection is established (WIFI_CONNECTED_BIT) or connection failed for the maximum
@@ -112,25 +109,20 @@ void wifi_init_sta(void)
                                            pdFALSE,
                                            pdFALSE,
                                            portMAX_DELAY);
-    ESP_LOGI(TAG,"I'm here!4\n");
     /* xEventGroupWaitBits() returns the bits before the call returned, hence we can test which event actually
      * happened. */
-    if (bits & WIFI_CONNECTED_BIT)
-    {
+    if (bits & WIFI_CONNECTED_BIT){
         ESP_LOGI(TAG, "connected to ap SSID:%s password:%s",
                  EXAMPLE_ESP_WIFI_SSID, EXAMPLE_ESP_WIFI_PASS);
     }
-    else if (bits & WIFI_FAIL_BIT)
-    {
+    else if (bits & WIFI_FAIL_BIT){
         ESP_LOGI(TAG, "Failed to connect to SSID:%s, password:%s",
                  EXAMPLE_ESP_WIFI_SSID, EXAMPLE_ESP_WIFI_PASS);
                  wifi_flag = 1;
     }
-    else
-    {
+    else{
         ESP_LOGE(TAG, "UNEXPECTED EVENT");
     }
-    ESP_LOGI(TAG,"I'm here!5\n");
     /* The event will not be processed after unregister */
     ESP_ERROR_CHECK(esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, instance_got_ip));
     ESP_ERROR_CHECK(esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, instance_any_id));

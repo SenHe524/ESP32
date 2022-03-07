@@ -137,6 +137,7 @@ static void ota_example_task(void *pvParameter)
     bool image_header_was_checked = false;
     while (1)
     {
+        //从Http读取数据
         int data_read = esp_http_client_read(client, ota_write_data, BUFFSIZE);
         if (data_read < 0)
         {
@@ -227,10 +228,6 @@ static void ota_example_task(void *pvParameter)
         }
         else if (data_read == 0)
         {
-            /*
-             * As esp_http_client_read never returns negative error code, we rely on
-             * `errno` to check for underlying transport connectivity closure if any
-             */
             if (errno == ECONNRESET || errno == ENOTCONN)
             {
                 ESP_LOGE(TAG, "Connection closed, errno = %d", errno);
