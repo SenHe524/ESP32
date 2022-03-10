@@ -16,7 +16,7 @@
 #include "errno.h"
 
 #include "ota_test.h"
-#include "timer_gpio_test.h"
+#include "timer_gpio.h"
 
 
 void app_main(void)

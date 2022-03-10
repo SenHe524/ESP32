@@ -23,6 +23,7 @@
     "tuple": "cpp",
     "type_traits": "cpp",
     "utility": "cpp",
-    "esp_task_wdt.h": "c"
+    "esp_task_wdt.h": "c",
+    "timer_gpio.h": "c"
   }
 }
