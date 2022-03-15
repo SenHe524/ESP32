@@ -15,6 +15,7 @@
 #include "nvs_flash.h"
 #include "bt_hci_common.h"
 
+
 static const char *tag = "BLE_ADV";
 
 static uint8_t hci_cmd_buf[128];
@@ -67,7 +68,7 @@ static void hci_cmd_send_ble_set_adv_param(void)
     uint8_t peer_addr_type = 0; // Public Device Address
     uint8_t peer_addr[6] = {0x80, 0x81, 0x82, 0x83, 0x84, 0x85};
     uint8_t adv_chn_map = 0x07; // 37, 38, 39
-    uint8_t adv_filter_policy = 0; // Process All Conn and Scan
+    uint8_t adv_filter_policy = 0; //ADV_FILTER_ALLOW_SCAN_ANY_CON_ANY: Process All Conn and Scan
 
     uint16_t sz = make_cmd_ble_set_adv_param(hci_cmd_buf,
                   adv_intv_min,

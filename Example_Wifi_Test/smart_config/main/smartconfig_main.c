@@ -85,25 +85,6 @@ static void event_handler(void* arg, esp_event_base_t event_base,
     }
 }
 
-static void initialise_wifi(void)
-{
-    ESP_ERROR_CHECK(esp_netif_init());
-    s_wifi_event_group = xEventGroupCreate();
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
-    esp_netif_t *sta_netif = esp_netif_create_default_wifi_sta();
-    assert(sta_netif);
-
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK( esp_wifi_init(&cfg) );
-
-    ESP_ERROR_CHECK( esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &event_handler, NULL) );
-    ESP_ERROR_CHECK( esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler, NULL) );
-    ESP_ERROR_CHECK( esp_event_handler_register(SC_EVENT, ESP_EVENT_ANY_ID, &event_handler, NULL) );
-
-    ESP_ERROR_CHECK( esp_wifi_set_mode(WIFI_MODE_STA) );
-    ESP_ERROR_CHECK( esp_wifi_start() );
-}
-
 static void smartconfig_example_task(void * parm)
 {
     EventBits_t uxBits;
@@ -123,8 +104,42 @@ static void smartconfig_example_task(void * parm)
     }
 }
 
+static void initialise_wifi(void)
+{
+    //创建LwIP核心任务并初始化相关工作（初始化底层TCP/IP栈。）
+    ESP_ERROR_CHECK(esp_netif_init());
+    //创建事件组
+    s_wifi_event_group = xEventGroupCreate();
+    // 创建系统事件任务并初始化应用程序事件的回调函数
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+    //创建默认的WIFI STA。在任何初始化错误的情况下，这个API中止
+    esp_netif_t *sta_netif = esp_netif_create_default_wifi_sta();
+    assert(sta_netif);
+
+    //定义一个名为cfg的wifi_init_config_t结构体，wifi_init_config_t的参数可由menuconfig配置
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+    //初始名为cfg的结构体
+    ESP_ERROR_CHECK( esp_wifi_init(&cfg) );
+
+    ESP_ERROR_CHECK( esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &event_handler, NULL) );
+    ESP_ERROR_CHECK( esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler, NULL) );
+    ESP_ERROR_CHECK( esp_event_handler_register(SC_EVENT, ESP_EVENT_ANY_ID, &event_handler, NULL) );
+
+    ESP_ERROR_CHECK( esp_wifi_set_mode(WIFI_MODE_STA) );
+    ESP_ERROR_CHECK( esp_wifi_start() );
+}
+
+
 void app_main(void)
 {
-    ESP_ERROR_CHECK( nvs_flash_init() );
+    // Initialize NVS
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
+    {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(ret);
+
     initialise_wifi();
 }

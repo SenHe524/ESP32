@@ -6,7 +6,7 @@
     "config_defaults":    "C:/Users/AUTO_1/Desktop/ESP32Code/Example_BlueTooth_Test/blufi/sdkconfig.defaults",
     "app_elf":            "blufi_demo.elf",
     "app_bin":            "blufi_demo.bin",
-    "git_revision":       "v4.4-1-g1622617",
+    "git_revision":       "v4.4-1-g1622617-dirty",
     "target":             "esp32",
     "rev":                "0",
     "phy_data_partition": "",

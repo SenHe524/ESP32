@@ -7,6 +7,7 @@
     "target/esp32.cfg"
   ],
   "files.associations": {
-    "bt_hci_common.h": "c"
+    "bt_hci_common.h": "c",
+    "esp_gap_ble_api.h": "c"
   }
 }

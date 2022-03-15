@@ -6,7 +6,7 @@
     "config_defaults":    "C:/Users/AUTO_1/Desktop/ESP32Code/Example_BlueTooth_Test/controller_vhci_ble_adv/sdkconfig.defaults",
     "app_elf":            "ble_adv.elf",
     "app_bin":            "ble_adv.bin",
-    "git_revision":       "v4.4-dirty",
+    "git_revision":       "v4.4-1-g1622617-dirty",
     "target":             "esp32",
     "rev":                "0",
     "phy_data_partition": "",
