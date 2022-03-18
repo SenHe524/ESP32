@@ -28,7 +28,6 @@ void app_main(void)
         if(ota_flag == 1)
         {
             timer_gpio_test();
-            break;
         }
         vTaskDelay(10);
     }

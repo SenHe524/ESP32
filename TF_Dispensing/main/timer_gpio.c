@@ -68,7 +68,7 @@ static bool IRAM_ATTR timer_isr_callback_test(void *args)
     }
     else
     {
-        timer_pause(TIMER_GROUP_0, TIMER_0); //停止1号定时器
+        timer_pause(TIMER_GROUP_0, TIMER_1); //停止1号定时器
         flag_timer_1 = 0;//1号定时器停止，标志位置0
     }
     return high_task_awoken == pdTRUE;

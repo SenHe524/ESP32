@@ -1,0 +1,32 @@
+{
+  "C_Cpp.intelliSenseEngine": "Tag Parser",
+  "idf.portWin": "COM5",
+  "idf.adapterTargetName": "esp32",
+  "idf.openOcdConfigs": [
+    "interface/ftdi/esp32_devkitj_v1.cfg",
+    "target/esp32.cfg"
+  ],
+  "files.associations": {
+    "ota_test.h": "c",
+    "protocol_examples_common.h": "c",
+    "esp_err.h": "c",
+    "*.ipp": "c",
+    "*.inc": "c",
+    "connect.h": "c",
+    "regex": "c",
+    "array": "cpp",
+    "chrono": "cpp",
+    "functional": "cpp",
+    "istream": "cpp",
+    "ostream": "cpp",
+    "ratio": "cpp",
+    "tuple": "cpp",
+    "type_traits": "cpp",
+    "utility": "cpp",
+    "esp_task_wdt.h": "c",
+    "timer_gpio.h": "c",
+    "optional": "c",
+    "system_error": "c",
+    "random": "c"
+  }
+}
