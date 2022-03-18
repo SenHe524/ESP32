@@ -17,6 +17,7 @@
 
 #include "ota_test.h"
 #include "timer_gpio.h"
+#include "x_gatts_demo.h"
 
 extern int ota_flag;
 
@@ -28,6 +29,12 @@ void app_main(void)
         if(ota_flag == 1)
         {
             timer_gpio_test();
+            //启用蓝牙之前，将wifi停止掉
+            esp_wifi_stop();
+            esp_wifi_disconnect();
+            esp_wifi_deinit();
+            
+            ble_control();
             break;
         }
         vTaskDelay(10);

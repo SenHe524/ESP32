@@ -409,6 +409,7 @@ C:/Users/AUTO_1/Desktop/ESP32Code/TF_Dispensing/build/esp-idf/asio/CMakeFiles/in
 C:/Users/AUTO_1/Desktop/ESP32Code/TF_Dispensing/build/esp-idf/asio/CMakeFiles/edit_cache.dir
 C:/Users/AUTO_1/Desktop/ESP32Code/TF_Dispensing/build/esp-idf/asio/CMakeFiles/rebuild_cache.dir
 C:/Users/AUTO_1/Desktop/ESP32Code/TF_Dispensing/build/esp-idf/asio/CMakeFiles/list_install_components.dir
+C:/Users/AUTO_1/Desktop/ESP32Code/TF_Dispensing/build/esp-idf/bt/CMakeFiles/__idf_bt.dir
 C:/Users/AUTO_1/Desktop/ESP32Code/TF_Dispensing/build/esp-idf/bt/CMakeFiles/install/local.dir
 C:/Users/AUTO_1/Desktop/ESP32Code/TF_Dispensing/build/esp-idf/bt/CMakeFiles/install.dir
 C:/Users/AUTO_1/Desktop/ESP32Code/TF_Dispensing/build/esp-idf/bt/CMakeFiles/edit_cache.dir

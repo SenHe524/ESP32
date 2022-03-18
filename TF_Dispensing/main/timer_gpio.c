@@ -25,6 +25,8 @@ static int flag_move = 0;   //物品放置标志位
 uint32_t io_level_last = 1;
 uint32_t io_level_now = 0;
 
+uint16_t time_change_flag = 2;
+
 void timer_gpio_test(void)
 {
     gpio_intr_init();
@@ -50,12 +52,31 @@ static bool IRAM_ATTR timer_isr_callback_test(void *args)
             timer_info_callback->timer_index,
             timer_counter_val);
     }
+    // if (!timer_info_callback->auto_reload)
+    // {
+    //     if (!timer_info_callback->timer_index)
+    //     {
+    //         timer_counter_val += timer_info_callback->alarm_interval * TIMER_SCALE;
+    //         timer_group_set_alarm_value_in_isr(
+    //             timer_info_callback->timer_group,
+    //             timer_info_callback->timer_index,
+    //             timer_counter_val);
+    //     }
+    //     else
+    //     {
+    //         timer_counter_val += timer_change_1 * TIMER_SCALE;
+    //         timer_group_set_alarm_value_in_isr(
+    //             timer_info_callback->timer_group,
+    //             timer_info_callback->timer_index,
+    //             timer_counter_val);
+    //     }
+    // }
 
     if(!timer_info_callback->timer_index)
     {    
         flag_T_cnt++;
         timer_start(TIMER_GROUP_0, TIMER_0);
-        if(flag_T_cnt>=2)
+        if(flag_T_cnt>=time_change_flag)
         {
             timer_pause(TIMER_GROUP_0, TIMER_0); //停止0号定时器
             timer_start(TIMER_GROUP_0, TIMER_1); //启动1号定时器
