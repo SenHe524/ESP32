@@ -326,12 +326,10 @@ void ota_test(void)
 #if CONFIG_EXAMPLE_CONNECT_WIFI
     esp_wifi_set_ps(WIFI_PS_NONE);
 #endif // CONFIG_EXAMPLE_CONNECT_WIFI
-    if(!wifi_flag)
-    {
+    if(!wifi_flag){
         xTaskCreate(&ota_example_task, "ota_example_task", 8192, NULL, 5, (TaskHandle_t *)&Task_Ota_t);
     }
-    else
-    {
+    else{
         ota_flag = 1;
     }
 }
