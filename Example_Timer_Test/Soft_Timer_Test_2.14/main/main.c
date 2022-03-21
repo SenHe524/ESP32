@@ -10,7 +10,7 @@
 #include "esp_timer.h"
 #include "esp_log.h"
 static const char *TAG = "TEST";
-int i = 0;
+int i = 4;
 void timer_test_callback(void *arg);
 void app_main(void)
 {
@@ -37,5 +37,5 @@ void app_main(void)
 void timer_test_callback(void *arg)
 {
     ESP_LOGI(TAG, "It works! %lldus\n", esp_timer_get_time());
-    i++;
+    i--;
 }

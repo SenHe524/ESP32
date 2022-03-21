@@ -15,11 +15,11 @@
 #define GPIO_Buzzer_IO 18 // Buzzerio口
 #define GPIO_Buzzer_PIN_SEL (1ULL << GPIO_Buzzer_IO)
 
-#define GPIO_OUTPUT_IO_1 19 //开关Gpio口
-#define GPIO_OUTPUT_PIN_SEL (1ULL << GPIO_OUTPUT_IO_1)
+#define GPIO_SWITCH_IO_1 19 //开关Gpio口
+#define GPIO_SWITCH_PIN_SEL (1ULL << GPIO_SWITCH_IO_1)
 
-#define GPIO_INPUT_IO_0 22  //传感器io口
-#define GPIO_INPUT_PIN_SEL (1ULL << GPIO_INPUT_IO_0)
+#define GPIO_SENSOR_IO_0 22  //传感器io口
+#define GPIO_SENSOR_PIN_SEL (1ULL << GPIO_SENSOR_IO_0)
 
 #define ESP_INTR_FLAG_DEFAULT 0
 

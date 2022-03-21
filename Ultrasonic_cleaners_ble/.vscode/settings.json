@@ -27,6 +27,7 @@
     "timer_gpio.h": "c",
     "optional": "c",
     "system_error": "c",
-    "random": "c"
+    "random": "c",
+    "esp_timer.h": "c"
   }
 }

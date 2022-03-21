@@ -10,7 +10,6 @@
                 "${config:idf.espIdfPathWin}/components/**",
                 "${config:idf.espAdfPath}/components/**",
                 "${config:idf.espAdfPathWin}/components/**",
-                //"E:/Espressif/frameworks/esp-idf-v4.4/components/esp_common/include/**",
                 "${workspaceFolder}/**"
             ],
             "browse": {
@@ -22,8 +21,7 @@
                     "${workspaceFolder}"
                 ],
                 "limitSymbolsToIncludedHeaders": false
-            },
-            "compileCommands": "${workspaceFolder}/build/compile_commands.json"
+            }
         }
     ],
     "version": 4
