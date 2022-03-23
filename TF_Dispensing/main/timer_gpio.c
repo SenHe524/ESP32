@@ -52,26 +52,6 @@ static bool IRAM_ATTR timer_isr_callback_test(void *args)
             timer_info_callback->timer_index,
             timer_counter_val);
     }
-    // if (!timer_info_callback->auto_reload)
-    // {
-    //     if (!timer_info_callback->timer_index)
-    //     {
-    //         timer_counter_val += timer_info_callback->alarm_interval * TIMER_SCALE;
-    //         timer_group_set_alarm_value_in_isr(
-    //             timer_info_callback->timer_group,
-    //             timer_info_callback->timer_index,
-    //             timer_counter_val);
-    //     }
-    //     else
-    //     {
-    //         timer_counter_val += timer_change_1 * TIMER_SCALE;
-    //         timer_group_set_alarm_value_in_isr(
-    //             timer_info_callback->timer_group,
-    //             timer_info_callback->timer_index,
-    //             timer_counter_val);
-    //     }
-    // }
-
     if(!timer_info_callback->timer_index)
     {    
         flag_T_cnt++;
@@ -142,14 +122,14 @@ void gpio_intr_init(void)
     gpio_config(&io_conf);
 
     io_conf.intr_type = GPIO_INTR_ANYEDGE;     // interrupt of rising edge
-    io_conf.pin_bit_mask = GPIO_INPUT_PIN_SEL; // bit mask of the pins, use GPIO4/5 here
+    io_conf.pin_bit_mask = GPIO_SENSOR_PIN_SEL; // bit mask of the pins, use GPIO4/5 here
     io_conf.mode = GPIO_MODE_INPUT;            // set as input mode
-    io_conf.pull_up_en = 1;                    // enable pull-up mode
+    io_conf.pull_up_en = 0 ;                    // enable pull-up mode
     io_conf.pull_down_en = 0;                  // disable pull-down mode
     gpio_config(&io_conf);
 
     // change gpio intrrupt type for one pin
-    gpio_set_intr_type(GPIO_INPUT_IO_0, GPIO_INTR_NEGEDGE);
+    gpio_set_intr_type(GPIO_SENSOR_IO_0, GPIO_INTR_NEGEDGE);
 
     // create a queue to handle gpio event from isr
     gpio_Queue_t = xQueueCreate(10, sizeof(uint32_t));
@@ -159,7 +139,7 @@ void gpio_intr_init(void)
     // install gpio isr service
     gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT); //允许每个GPIO注册中断处理程序
     // hook isr handler for specific gpio pin
-    gpio_isr_handler_add(GPIO_INPUT_IO_0, gpio_isr_handler, (void *)GPIO_INPUT_IO_0);
+    gpio_isr_handler_add(GPIO_SENSOR_IO_0, gpio_isr_handler, (void *)GPIO_SENSOR_IO_0);
 }
 
 static void gpio_task(void *arg)
