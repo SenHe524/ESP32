@@ -21,6 +21,7 @@ static int flag_timer_0 = 0; //定时器0的标志位
 static int flag_timer_1 = 0; //定时器1的标志位
 static int flag_T_cnt = 0; //定时器计数
 static int flag_move = 0;   //物品放置标志位
+static int flag_yellow = 0;
 
 uint32_t io_level_last = 1;
 uint32_t io_level_now = 0;
@@ -62,6 +63,8 @@ static bool IRAM_ATTR timer_isr_callback_test(void *args)
             timer_start(TIMER_GROUP_0, TIMER_1); //启动1号定时器
             flag_timer_0 = 0;//0号定时器计时完成时，标志位置零
             flag_timer_1 = 1;//1号定时器开启，标志位置1
+
+            flag_yellow = 1;
             gpio_set_level(GPIO_Yellow_IO,1);
             gpio_set_level(GPIO_Red_IO,0);
             flag_T_cnt = 0;
@@ -152,7 +155,7 @@ static void gpio_task(void *arg)
             io_level_now = gpio_get_level(io_num);
             printf("GPIO[%d] intr, val: %d\n", io_num, io_level_now);
 
-            if((!io_level_now) && io_level_last && (!flag_timer_0))
+            if((!io_level_now) && io_level_last && (!flag_timer_0) && (!flag_yellow))
             {
                 flag_timer_0 = 1;
                 flag_move = 1;
@@ -163,6 +166,7 @@ static void gpio_task(void *arg)
             }
             else if(io_level_now && (!io_level_last) && (!flag_timer_0))
             {
+                flag_yellow = 0;
                 gpio_set_level(GPIO_Yellow_IO,0);
                 gpio_set_level(GPIO_Green_IO,1);
                 flag_move = 0;

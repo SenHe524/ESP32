@@ -11,8 +11,8 @@
 #include "lwip/err.h"
 #include "lwip/sys.h"
 
-#define EXAMPLE_ESP_WIFI_SSID "CDTAC-3F"
-#define EXAMPLE_ESP_WIFI_PASS "CDTAC20170417"
+#define EXAMPLE_ESP_WIFI_SSID "TAC-GENRAY"
+#define EXAMPLE_ESP_WIFI_PASS "tacgenray2022"
 #define EXAMPLE_ESP_MAXIMUM_RETRY 5
 
 /* The event group allows multiple bits for each event, but we only care about two events:
