@@ -24,10 +24,6 @@
 #define GATTS_DESCR_UUID_TEST_A     0x3333
 #define GATTS_NUM_HANDLE_TEST_A     4
 
-#define GATTS_SERVICE_UUID_TEST_B   0x00EE
-#define GATTS_CHAR_UUID_TEST_B      0xEE01
-#define GATTS_DESCR_UUID_TEST_B     0x2222
-#define GATTS_NUM_HANDLE_TEST_B     4
 
 #define TEST_DEVICE_NAME            "Ultrasonic_cleaners"
 #define TEST_MANUFACTURER_DATA_LEN  17
@@ -41,8 +37,8 @@
 #define scan_rsp_config_flag (1 << 1)
 
 
-#define PROFILE_NUM 2
+#define PROFILE_NUM 1
 #define PROFILE_A_APP_ID 0
-#define PROFILE_B_APP_ID 1
+
 
 void ble_control(void);

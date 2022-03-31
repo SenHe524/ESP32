@@ -24,13 +24,8 @@
 #define GATTS_DESCR_UUID_TEST_A     0x3333
 #define GATTS_NUM_HANDLE_TEST_A     4
 
-#define GATTS_SERVICE_UUID_TEST_B   0x00EE
-#define GATTS_CHAR_UUID_TEST_B      0xEE01
-#define GATTS_DESCR_UUID_TEST_B     0x2222
-#define GATTS_NUM_HANDLE_TEST_B     4
 
-#define TEST_DEVICE_NAME            "TF_Dispensing"
-#define TEST_MANUFACTURER_DATA_LEN  17
+#define TEST_DEVICE_NAME            "Ultrasonic_cleaners"
 
 #define GATTS_DEMO_CHAR_VAL_LEN_MAX 0x40
 
@@ -43,6 +38,6 @@
 
 #define PROFILE_NUM 1
 #define PROFILE_A_APP_ID 0
-#define PROFILE_B_APP_ID 1
+
 
 void ble_control(void);
