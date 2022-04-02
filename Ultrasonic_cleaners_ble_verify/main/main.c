@@ -18,7 +18,7 @@
 
 #include "ota_test.h"
 #include "timer_gpio.h"
-#include "x_gatts_demo.h"
+#include "gap_gatts.h"
 
 extern int ota_flag;
 

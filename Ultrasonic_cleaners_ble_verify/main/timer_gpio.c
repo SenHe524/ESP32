@@ -104,9 +104,9 @@ static bool IRAM_ATTR timer_isr_callback_test(void *args)
         
         gpio_set_level(GPIO_Green_IO,1);
         gpio_set_level(GPIO_Yellow_IO,0);
-        //启动软件定时器计时500ms，并将GPIO口19电平拉高，在10ms后拉低模拟脉冲
+        //启动软件定时器计时500ms，并将GPIO口19电平拉高，在200ms后拉低模拟脉冲
         esp_timer_create(&soft_timer_args_close, &soft_timer_close);
-        esp_timer_start_once(soft_timer_close, 10 * 1000);
+        esp_timer_start_once(soft_timer_close, 50 * 1000);
         gpio_set_direction(GPIO_SWITCH_CLOSE_IO,GPIO_MODE_OUTPUT);
         gpio_set_level(GPIO_SWITCH_CLOSE_IO,1);
     }
@@ -228,6 +228,7 @@ static void gpio_task(void *arg)
                 esp_timer_start_once(soft_timer_open, 200 * 1000);
                 gpio_set_direction(GPIO_SWITCH_OPEN_IO,GPIO_MODE_OUTPUT);
                 gpio_set_level(GPIO_SWITCH_OPEN_IO,1);
+                // gpio_set_level(GPIO_SWITCH_CLOSE_IO,0);
 
                 timer_start(TIMER_GROUP_0, TIMER_0);
                 timer_start(TIMER_GROUP_0, TIMER_1);
@@ -253,5 +254,6 @@ void LED_PWM_init(void)
     io_conf.pull_down_en = 1;                // enable pull-down mode
     io_conf.pull_up_en = 0;                  // disable pull-up mode
     gpio_config(&io_conf);
-
+    gpio_set_direction(GPIO_test,GPIO_MODE_OUTPUT);
+    gpio_set_level(GPIO_test,1);
 }

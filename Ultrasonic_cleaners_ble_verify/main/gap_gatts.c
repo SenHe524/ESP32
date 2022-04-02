@@ -16,11 +16,12 @@
 #include "esp_gatt_common_api.h"
 
 #include "sdkconfig.h"
-#include "x_gatts_demo.h"
+#include "gap_gatts.h"
 
 
 extern uint16_t time_change_flag;
 static int match_flag = 0;
+static int bond_flag = 0;
 ///Declare the static function
 static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param);
 
@@ -251,6 +252,7 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
         if (param->adv_start_cmpl.status != ESP_BT_STATUS_SUCCESS) {
             ESP_LOGE(GATTS_TAG, "Advertising start failed\n");
         }
+        bond_flag = 0;
         break;
     case ESP_GAP_BLE_ADV_STOP_COMPLETE_EVT:
         if (param->adv_stop_cmpl.status != ESP_BT_STATUS_SUCCESS) {
@@ -309,6 +311,11 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
         ESP_LOGI(GATTS_TAG, "pair status = %s",param->ble_security.auth_cmpl.success ? "success" : "fail");
         if(!param->ble_security.auth_cmpl.success) {
             ESP_LOGI(GATTS_TAG, "fail reason = 0x%x",param->ble_security.auth_cmpl.fail_reason);
+            bond_flag = 0;
+        }
+        else
+        {
+            bond_flag = 1;
         }
         show_bonded_devices();
         break;
@@ -392,13 +399,19 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
         if (!param->write.is_prep){
             ESP_LOGI(GATTS_TAG, "GATT_WRITE_EVT, value len %d, value :", param->write.len);
             esp_log_buffer_hex(GATTS_TAG, param->write.value, param->write.len);
-            if(match_flag)
+            if(bond_flag)
             {
-                time_change_flag = *param->write.value;
-            }
-            else
-            {
-                match(*param->write.value);
+                if(match_flag)
+                {
+                    if((*param->write.value/100) < (*param->write.value%100))
+                    {
+                        time_change_flag = *param->write.value;
+                    }
+                }
+                else
+                {
+                    match(*param->write.value);
+                }
             }
             ESP_LOGI(GATTS_TAG, "%d", time_change_flag);
         }
@@ -555,15 +568,15 @@ void ble_control(void)
     esp_ble_gatts_app_register(PROFILE_A_APP_ID);
     esp_ble_gatt_set_local_mtu(500);
     /* set the security iocap & auth_req & key size & init key response key parameters to the stack*/
-    esp_ble_auth_req_t auth_req = ESP_LE_AUTH_REQ_SC_MITM_BOND;     //bonding with peer device after authentication
-    esp_ble_io_cap_t iocap = ESP_IO_CAP_IO;           //set the IO capability to DisplayYesNo
+    esp_ble_auth_req_t auth_req = ESP_LE_AUTH_REQ_SC_BOND;     //bonding with peer device after authentication
+    esp_ble_io_cap_t iocap = ESP_IO_CAP_OUT;           //set the IO capability to DisplayYesNo
     uint8_t key_size = 16;      //the key size should be 7~16 bytes
     uint8_t init_key = ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK;
     uint8_t rsp_key = ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK;
     //set static passkey
     uint32_t passkey = 202204;
     uint8_t auth_option = ESP_BLE_ONLY_ACCEPT_SPECIFIED_AUTH_DISABLE;
-    uint8_t oob_support = ESP_BLE_OOB_ENABLE;
+    uint8_t oob_support = ESP_BLE_OOB_DISABLE;
     esp_ble_gap_set_security_param(ESP_BLE_SM_SET_STATIC_PASSKEY, &passkey, sizeof(uint32_t));
     esp_ble_gap_set_security_param(ESP_BLE_SM_AUTHEN_REQ_MODE, &auth_req, sizeof(uint8_t));
     esp_ble_gap_set_security_param(ESP_BLE_SM_IOCAP_MODE, &iocap, sizeof(uint8_t));

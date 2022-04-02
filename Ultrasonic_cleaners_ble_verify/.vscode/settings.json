@@ -29,6 +29,9 @@
     "system_error": "c",
     "random": "c",
     "esp_timer.h": "c",
-    "esp_gatt_common_api.h": "c"
+    "esp_gatt_common_api.h": "c",
+    "gap_gatts.h": "c",
+    "esp_bt_defs.h": "c",
+    "esp_bt_main.h": "c"
   }
 }
