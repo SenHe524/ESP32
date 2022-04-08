@@ -25,25 +25,32 @@ static int bond_flag = 0;
 ///Declare the static function
 static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param);
 
+uint16_t uc_handle_table[IDX_NB];
 
-static uint8_t char1_str[] = {0x11,0x22,0x33};
+/* Service */
+static const uint16_t GATTS_SERVICE_UUID      = 0x00FF;
+static const uint16_t GATTS_CHAR_UUID_A       = 0xFF01;
+static const uint16_t GATTS_CHAR_UUID_B       = 0xFF02;
+// static const uint16_t GATTS_CHAR_UUID_C       = 0xFF03;
+// static const uint16_t GATTS_CHAR_UUID_D       = 0xFF04;
 
-static esp_gatt_char_prop_t a_property = 0;
+static const uint16_t primary_service_uuid         = ESP_GATT_UUID_PRI_SERVICE;
+static const uint16_t character_declaration_uuid   = ESP_GATT_UUID_CHAR_DECLARE;
+static const uint16_t character_client_config_uuid = ESP_GATT_UUID_CHAR_CLIENT_CONFIG;
+static const uint8_t char_prop_read_write_notify   = ESP_GATT_CHAR_PROP_BIT_WRITE | ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_NOTIFY;
+static const uint8_t heart_measurement_ccc[2]      = {0x00, 0x00};
+static const uint8_t char_value[4]                 = {0x11, 0x22, 0x33, 0x44};
 
-static esp_attr_value_t gatts_char1_val =
-{
-    .attr_max_len = GATTS_CHAR_VAL_LEN_MAX,
-    .attr_len     = sizeof(char1_str),
-    .attr_value   = char1_str,
-};
 
 static uint8_t adv_config_done = 0;
 
-
+// #define CONFIG_SET_RAW_ADV_DATA
 #ifdef CONFIG_SET_RAW_ADV_DATA
 static uint8_t raw_adv_data[] = {
         0x02, 0x01, 0x06,
-        0x02, 0x0a, 0xeb, 0x03, 0x03, 0xab, 0xcd
+        0x02, 0x0a, 0xeb,
+        0x03, 0x03, 0xab, 0xcd,
+        0x0f,0x09,'E','S','P'
 };
 static uint8_t raw_scan_rsp_data[] = {
         0x0f, 0x09, 0x45, 0x53, 0x50, 0x5f, 0x47, 0x41, 0x54, 0x54, 0x53, 0x5f, 0x44,
@@ -136,6 +143,61 @@ typedef struct {
 } prepare_type_env_t;
 
 static prepare_type_env_t a_prepare_write_env;
+
+/* Full Database Description - Used to add attributes into the database */
+static const esp_gatts_attr_db_t gatt_db[IDX_NB] =
+{
+    // Service Declaration  服务声明
+    [IDX_SVC]        =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&primary_service_uuid, ESP_GATT_PERM_READ,
+      sizeof(uint16_t), sizeof(GATTS_SERVICE_UUID), (uint8_t *)&GATTS_SERVICE_UUID}},
+
+    /* Characteristic Declaration   服务特征声明 */
+    [IDX_CHAR_A]     =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_declaration_uuid, ESP_GATT_PERM_READ,
+      CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE, (uint8_t *)&char_prop_read_write_notify}},
+
+    /* Characteristic Value  服务特征值 */
+    [IDX_CHAR_VAL_A] =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_A, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
+      GATTS_CHAR_VAL_LEN_MAX, sizeof(char_value), (uint8_t *)char_value}},
+
+    /* Client Characteristic Configuration Descriptor  客户端特征配置描述  */
+    [IDX_CHAR_CFG_A]  =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_client_config_uuid, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
+      sizeof(uint16_t), sizeof(heart_measurement_ccc), (uint8_t *)heart_measurement_ccc}},
+
+    /* Characteristic Declaration  特征B声明 */
+    [IDX_CHAR_B]      =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_declaration_uuid, ESP_GATT_PERM_READ,
+      CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE, (uint8_t *)&char_prop_read_write_notify}},
+
+    /* Characteristic Value   特征B的值*/
+    [IDX_CHAR_VAL_B]  =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_B, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
+      GATTS_CHAR_VAL_LEN_MAX, sizeof(char_value), (uint8_t *)char_value}},
+
+    // /* Characteristic Declaration   特征C声明*/
+    // [IDX_CHAR_C]      =
+    // {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_declaration_uuid, ESP_GATT_PERM_READ,
+    //   CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE, (uint8_t *)&char_prop_read_write_notify}},
+
+    // /* Characteristic Value   特征C的值*/
+    // [IDX_CHAR_VAL_C]  =
+    // {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_C, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
+    //   GATTS_CHAR_VAL_LEN_MAX, sizeof(char_value), (uint8_t *)char_value}},
+    
+    // /* Characteristic Declaration   特征D声明*/
+    // [IDX_CHAR_D]      =
+    // {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_declaration_uuid, ESP_GATT_PERM_READ,
+    //   CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE, (uint8_t *)&char_prop_read_write_notify}},
+
+    // /* Characteristic Value   特征D的值*/
+    // [IDX_CHAR_VAL_D]  =
+    // {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_D, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
+    //   GATTS_CHAR_VAL_LEN_MAX, sizeof(char_value), (uint8_t *)char_value}},
+
+};
 
 void example_write_event_env(esp_gatt_if_t gatts_if, prepare_type_env_t *prepare_write_env, esp_ble_gatts_cb_param_t *param);
 void example_exec_write_event_env(prepare_type_env_t *prepare_write_env, esp_ble_gatts_cb_param_t *param);
@@ -339,12 +401,7 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
     switch (event) {
     case ESP_GATTS_REG_EVT: {
         ESP_LOGI(GATTS_TAG, "REGISTER_APP_EVT, status %d, app_id %d\n", param->reg.status, param->reg.app_id);
-        gl_profile_tab[PROFILE_A_APP_ID].service_id.is_primary = true;
-        gl_profile_tab[PROFILE_A_APP_ID].service_id.id.inst_id = 0x00;
-        gl_profile_tab[PROFILE_A_APP_ID].service_id.id.uuid.len = ESP_UUID_LEN_16;
-        gl_profile_tab[PROFILE_A_APP_ID].service_id.id.uuid.uuid.uuid16 = GATTS_SERVICE_UUID_A;
-        esp_ble_gap_set_device_name(TEST_DEVICE_NAME);
-
+        esp_ble_gap_set_device_name(DEVICE_NAME);
 #ifdef CONFIG_SET_RAW_ADV_DATA
         esp_ble_gap_config_adv_data_raw(raw_adv_data, sizeof(raw_adv_data));
         adv_config_done |= adv_config_flag;
@@ -357,7 +414,7 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
         esp_ble_gap_config_adv_data(&scan_rsp_data);
         adv_config_done |= scan_rsp_config_flag;
 #endif
-        esp_ble_gatts_create_service(gatts_if, &gl_profile_tab[PROFILE_A_APP_ID].service_id, GATTS_NUM_HANDLE_A);
+        esp_ble_gatts_create_attr_tab(gatt_db, gatts_if, IDX_NB, SVC_INST_ID);
         break;
     }
     case ESP_GATTS_READ_EVT: {
@@ -415,20 +472,6 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
         break;
     case ESP_GATTS_UNREG_EVT:
         break;
-    case ESP_GATTS_CREATE_EVT: {
-        ESP_LOGI(GATTS_TAG, "CREATE_SERVICE_EVT, status %d,  service_handle %d\n", param->create.status, param->create.service_handle);
-        gl_profile_tab[PROFILE_A_APP_ID].service_handle = param->create.service_handle;
-        gl_profile_tab[PROFILE_A_APP_ID].char_uuid.len = ESP_UUID_LEN_16;
-        gl_profile_tab[PROFILE_A_APP_ID].char_uuid.uuid.uuid16 = GATTS_CHAR_UUID_A;
-
-        esp_ble_gatts_start_service(gl_profile_tab[PROFILE_A_APP_ID].service_handle);
-        a_property = ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_WRITE | ESP_GATT_CHAR_PROP_BIT_NOTIFY;
-        esp_ble_gatts_add_char(gl_profile_tab[PROFILE_A_APP_ID].service_handle, &gl_profile_tab[PROFILE_A_APP_ID].char_uuid,
-                                                        ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
-                                                        a_property,
-                                                        &gatts_char1_val, NULL);
-        break;
-    }
     case ESP_GATTS_ADD_INCL_SRVC_EVT:
         break;
     case ESP_GATTS_ADD_CHAR_EVT: {
@@ -489,6 +532,21 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
         match_flag = 0;
         break;
     }
+    case ESP_GATTS_CREAT_ATTR_TAB_EVT:{
+            if (param->add_attr_tab.status != ESP_GATT_OK){
+                ESP_LOGE(GATTS_TAG, "create attribute table failed, error code=0x%x", param->add_attr_tab.status);
+            }
+            else if (param->add_attr_tab.num_handle != IDX_NB){
+                ESP_LOGE(GATTS_TAG, "create attribute table abnormally, num_handle (%d) \
+                        doesn't equal to HRS_IDX_NB(%d)", param->add_attr_tab.num_handle, IDX_NB);
+            }
+            else {
+                ESP_LOGI(GATTS_TAG, "create attribute table successfully, the number handle = %d\n",param->add_attr_tab.num_handle);
+                memcpy(uc_handle_table, param->add_attr_tab.handles, sizeof(uc_handle_table));
+                esp_ble_gatts_start_service(uc_handle_table[IDX_SVC]);
+            }
+            break;
+        }
     case ESP_GATTS_CONF_EVT: {
         ESP_LOGI(GATTS_TAG, "ESP_GATTS_CONF_EVT, status %d attr_handle %d", param->conf.status, param->conf.handle);
         if (param->conf.status != ESP_GATT_OK){

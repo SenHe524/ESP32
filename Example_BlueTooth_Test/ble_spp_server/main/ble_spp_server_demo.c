@@ -696,6 +696,6 @@ void app_main(void)
     esp_ble_gatts_app_register(ESP_SPP_APP_ID);
 
     spp_task_init();
-
+    printf("test");
     return;
 }
