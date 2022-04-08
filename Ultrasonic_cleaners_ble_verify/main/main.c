@@ -16,29 +16,23 @@
 #include "errno.h"
 #include "esp_wifi.h"
 
-#include "ota_test.h"
+#include "ota_task.h"
 #include "timer_gpio.h"
 #include "gap_gatts.h"
 
-extern int ota_flag;
+int ota_confirm;
 
 void app_main(void)
 {
-    ota_test();
-    while(1)
-    {
-        if(ota_flag == 1)
-        {
-            timer_gpio_test();
-            //启用蓝牙之前，将wifi停止掉
-            esp_wifi_stop();
-            esp_wifi_disconnect();
-            esp_wifi_deinit();
-            
-            ble_control();
-            break;
-        }
-        vTaskDelay(10);
-    }
+    ota_detection();
+    xQueueReceive(ota_Queue_t, &ota_confirm, portMAX_DELAY);//阻塞直到接收到ota_confirm
+
+    timer_gpio_init();
+
+    //启用蓝牙之前，将wifi停止掉
+    esp_wifi_stop();
+    esp_wifi_disconnect();
+    esp_wifi_deinit();
     
+    ble_control();
 }

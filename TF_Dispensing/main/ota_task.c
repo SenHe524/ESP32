@@ -13,18 +13,19 @@
 #include "driver/gpio.h"
 #include "protocol_examples_common.h"
 #include "errno.h"
-#include "ota_test.h"
+#include "ota_task.h"
 #include "wifi_connect.h"
 
 int ota_flag = 0;
-extern int wifi_flag;
+
+xQueueHandle ota_Queue_t;
 
 static const char *TAG = "Ultrasonic_cleaners_Ota";
 /*an ota data write buffer ready to write to the flash*/
 static char ota_write_data[BUFFSIZE + 1] = {0};
 static void http_cleanup(esp_http_client_handle_t client);
 static void __attribute__((noreturn)) task_fatal_error(void);
-static void ota_example_task(void *pvParameter);
+static void ota_task(void *pvParameter);
 static bool diagnostic(void);
 static TaskHandle_t Task_Ota_t = NULL;
 
@@ -38,6 +39,7 @@ static void __attribute__((noreturn)) task_fatal_error(void)
 {
     ESP_LOGE(TAG, "Exiting task due to fatal error...");
     ota_flag = 1;
+    xQueueSend(ota_Queue_t, &ota_flag, NULL);
     (void)vTaskDelete(NULL);
 
     while (1)
@@ -46,7 +48,7 @@ static void __attribute__((noreturn)) task_fatal_error(void)
     }
 }
 
-static void ota_example_task(void *pvParameter)
+static void ota_task(void *pvParameter)
 {
     esp_err_t err;
     /* update handle : set by esp_ota_begin(), must be freed via esp_ota_end() */
@@ -165,6 +167,7 @@ static void ota_example_task(void *pvParameter)
                             ESP_LOGW(TAG, "The firmware has been rolled back to the previous version.");
                             http_cleanup(client);
                             ota_flag = 1;
+                            xQueueSend(ota_Queue_t, &ota_flag, NULL);
                             vTaskSuspend(Task_Ota_t);
                             // return ;
                         }
@@ -175,6 +178,7 @@ static void ota_example_task(void *pvParameter)
                         ESP_LOGW(TAG, "Current running version is the same as the new or later. We will not continue the update.");
                         http_cleanup(client);
                         ota_flag = 1;
+                        xQueueSend(ota_Queue_t, &ota_flag, NULL);
                         vTaskSuspend(Task_Ota_t);
                         // return ;
                     }
@@ -262,6 +266,7 @@ static void ota_example_task(void *pvParameter)
     ESP_LOGI(TAG, "Prepare to restart system!");
     // vTaskDelete(Task_Ota_t);
     ota_flag = 1;
+    xQueueSend(ota_Queue_t, &ota_flag, NULL);
     esp_restart();
     // return ;
 }
@@ -285,7 +290,7 @@ static bool diagnostic(void)
     return diagnostic_is_ok;
 }
 
-void ota_test(void)
+void ota_detection(void)
 {
     const esp_partition_t *running = esp_ota_get_running_partition();
     esp_ota_img_states_t ota_state;
@@ -319,17 +324,18 @@ void ota_test(void)
 
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
-
+    ota_Queue_t = xQueueCreate(10, sizeof(int));
     ESP_LOGI(TAG, "ESP_WIFI_MODE_STA");
-    wifi_init_sta();
+    // wifi_init_sta();
 
 #if CONFIG_EXAMPLE_CONNECT_WIFI
     esp_wifi_set_ps(WIFI_PS_NONE);
 #endif // CONFIG_EXAMPLE_CONNECT_WIFI
-    if(!wifi_flag){
-        xTaskCreate(&ota_example_task, "ota_example_task", 8192, NULL, 5, (TaskHandle_t *)&Task_Ota_t);
+    if(wifi_init_sta()){
+        xTaskCreate(&ota_task, "ota_task", 8192, NULL, 5, (TaskHandle_t *)&Task_Ota_t);
     }
     else{
         ota_flag = 1;
+        xQueueSend(ota_Queue_t, &ota_flag, NULL);
     }
 }

@@ -38,7 +38,6 @@ typedef struct
 } timer_test_info_t;
 
 
-void timer_gpio_test(void);
-void gpio_intr_init(void);
-void LED_init(void);
+void timer_gpio_init(void);
+
 

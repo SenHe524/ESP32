@@ -27,11 +27,12 @@ uint32_t io_level_last = 1;
 uint32_t io_level_now = 0;
 
 uint16_t time_change_flag = 2;
-
-void timer_gpio_test(void)
+void gpio_intr_init(void);
+void led_init(void);
+void timer_gpio_init(void)
 {
     gpio_intr_init();
-    LED_init();
+    led_init();
     timer_init_test(TIMER_GROUP_0, TIMER_0, false, 5);
     timer_init_test(TIMER_GROUP_0, TIMER_1, false, 5);
     gpio_set_level(GPIO_Green_IO,1);
@@ -194,7 +195,7 @@ static void Buzzer_control_task(void *arg)
     }
 }
 
-void LED_init(void)
+void led_init(void)
 {
     // zero-initialize the config structure.
     gpio_config_t io_conf = {};

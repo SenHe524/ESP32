@@ -13,20 +13,12 @@
 #include "driver/gpio.h"
 #include "protocol_examples_common.h"
 #include "errno.h"
-
-#if CONFIG_EXAMPLE_CONNECT_WIFI
 #include "esp_wifi.h"
-#endif
-
-extern int ota_flag;
 
 #define BUFFSIZE 1024
-#define HASH_LEN 32 /* SHA-256 digest length */
-
-extern const uint8_t server_cert_pem_start[] asm("_binary_ca_cert_pem_start");
-extern const uint8_t server_cert_pem_end[] asm("_binary_ca_cert_pem_end");
 
 #define OTA_URL_SIZE 256
 
+xQueueHandle ota_Queue_t;
 
-void ota_test(void);
+void ota_detection(void);

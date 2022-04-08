@@ -9,14 +9,13 @@
 #define GPIO_Green_IO 14 // 绿指示灯io口
 #define GPIO_Red_IO 12 // 红色指示灯io口
 #define GPIO_Yellow_IO 13 // 黄色指示灯io口
-#define GPIO_LED_PIN_SEL ((1ULL << GPIO_Green_IO) | (1ULL << GPIO_Red_IO) | (1ULL << GPIO_Yellow_IO))
+#define GPIO_wifi_IO 27 // wifi指示灯io口
+#define GPIO_LED_PIN_SEL ((1ULL << GPIO_Green_IO) | (1ULL << GPIO_Red_IO) | (1ULL << GPIO_Yellow_IO) | (1ULL << GPIO_wifi_IO))
 
 
-// #define GPIO_Buzzer_IO 18 // Buzzerio口
-// #define GPIO_Buzzer_PIN_SEL (1ULL << GPIO_Buzzer_IO)
-#define GPIO_test 21 //开Gpio口
 #define GPIO_SWITCH_OPEN_IO 18 //开Gpio口
 #define GPIO_SWITCH_CLOSE_IO 19 //关Gpio口
+#define GPIO_test 21 //开Gpio口
 #define GPIO_SWITCH_PIN_SEL ((1ULL << GPIO_SWITCH_OPEN_IO) | (1ULL << GPIO_SWITCH_CLOSE_IO) | (1ULL << GPIO_SWITCH_CLOSE_IO))
 
 #define GPIO_SENSOR_IO_0 22  //传感器io口
@@ -28,6 +27,7 @@
 // 定时器计数频率convert counter value to seconds
 #define TIMER_SCALE (TIMER_BASE_CLK / TIMER_DIVIDER)
 
+// uint16_t time_change_data = 0;
 
 //定时器相关参数结构体
 typedef struct
@@ -39,7 +39,7 @@ typedef struct
 } timer_test_info_t;
 
 
-void timer_gpio_test(void);
+void timer_gpio_init(void);
 void gpio_intr_init(void);
-void LED_init(void);
+
 

@@ -16,7 +16,7 @@
 #include "esp_gatt_common_api.h"
 
 #include "sdkconfig.h"
-#include "x_gatts_demo.h"
+#include "gap_gatts.h"
 
 
 extern uint16_t time_change_flag;

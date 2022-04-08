@@ -4,9 +4,14 @@
 #include "freertos/queue.h"
 #include "driver/timer.h"
 #include "driver/gpio.h"
-#include "timer_gpio.h"
+
 #include "esp_task_wdt.h"
 #include "esp_timer.h"
+
+#include "gap_gatts.h"
+#include "timer_gpio.h"
+
+uint16_t time_change_data = 0;
 
 static xQueueHandle gpio_Queue_t;  // Gpio队列句柄
 
@@ -17,14 +22,10 @@ void soft_timer_callback_close(void *arg);
 
 static void IRAM_ATTR gpio_isr_handler(void *arg); // Gpio的ISR回调函数
 static void gpio_task(void *arg);  
-void LED_PWM_init(void);
+void led_switch_init(void);
 
 static int flag_timer_0 = 0; //定时器0的标志位
 static int flag_timer_1 = 0; //定时器1的标志位
-
-uint16_t time_change_flag = 510;
-uint8_t timer_change_0 = 0;
-uint8_t timer_change_1 = 0;
 
 esp_timer_handle_t soft_timer_open;//创建软件定时器句柄
 const esp_timer_create_args_t soft_timer_args_open = {
@@ -39,14 +40,20 @@ const esp_timer_create_args_t soft_timer_args_close = {
             .name = "soft_timer_close"
     };
 
-void timer_gpio_test(void)
+void timer_gpio_init(void)
 {
     esp_timer_init();    //软件定时器接口初始化
-    gpio_intr_init();
-    LED_PWM_init();
+    gpio_intr_init();    //Gpio口中断的初始化
+    led_switch_init();   //Led与Switch的io配置初始化
     gpio_set_level(GPIO_Green_IO,1);
-    timer_init_test(TIMER_GROUP_0, TIMER_0, true,5);
-    timer_init_test(TIMER_GROUP_0, TIMER_1, true, 10);
+
+    //从NVS中读取定时器时间配置
+    nvs_open(NVS_DATA_STORAGE, NVS_READWRITE, &nvs_data_storage_handle);
+    nvs_get_u16(nvs_data_storage_handle, TIMER_CHANGE, &time_change_data);
+    nvs_close(nvs_data_storage_handle);
+    //初始化两个定时器
+    timer_init_test(TIMER_GROUP_0, TIMER_0, true,time_change_data/100);
+    timer_init_test(TIMER_GROUP_0, TIMER_1, true, time_change_data%100);
 }
 
 static bool IRAM_ATTR timer_isr_callback_test(void *args)
@@ -56,13 +63,11 @@ static bool IRAM_ATTR timer_isr_callback_test(void *args)
     uint64_t timer_counter_val = timer_group_get_counter_value_in_isr(
         timer_info_callback->timer_group,
         timer_info_callback->timer_index);
-    timer_change_0 = time_change_flag/100;
-    timer_change_1 = time_change_flag%100;
     if (!timer_info_callback->auto_reload)
     {
         if (!timer_info_callback->timer_index)
         {
-            timer_counter_val += timer_change_0 * TIMER_SCALE;
+            timer_counter_val += (time_change_data/100) * TIMER_SCALE;
             timer_group_set_alarm_value_in_isr(
                 timer_info_callback->timer_group,
                 timer_info_callback->timer_index,
@@ -70,7 +75,7 @@ static bool IRAM_ATTR timer_isr_callback_test(void *args)
         }
         else
         {
-            timer_counter_val += timer_change_1 * TIMER_SCALE;
+            timer_counter_val += (time_change_data%100) * TIMER_SCALE;
             timer_group_set_alarm_value_in_isr(
                 timer_info_callback->timer_group,
                 timer_info_callback->timer_index,
@@ -81,7 +86,7 @@ static bool IRAM_ATTR timer_isr_callback_test(void *args)
     {
          if (!timer_info_callback->timer_index)
         {
-            timer_counter_val = timer_change_0 * TIMER_SCALE;
+            timer_counter_val = (time_change_data/100) * TIMER_SCALE;
             timer_group_set_alarm_value_in_isr(
                 timer_info_callback->timer_group,
                 timer_info_callback->timer_index,
@@ -89,7 +94,7 @@ static bool IRAM_ATTR timer_isr_callback_test(void *args)
         }
         else
         {
-            timer_counter_val = timer_change_1 * TIMER_SCALE;
+            timer_counter_val = (time_change_data%100) * TIMER_SCALE;
             timer_group_set_alarm_value_in_isr(
                 timer_info_callback->timer_group,
                 timer_info_callback->timer_index,
@@ -176,13 +181,6 @@ void gpio_intr_init(void)
 {
     // zero-initialize the config structure.
     gpio_config_t io_conf = {};
-    // io_conf.intr_type = GPIO_INTR_DISABLE;   // disable interrupt
-    // io_conf.mode = GPIO_MODE_INPUT;         // set as output mode
-    // io_conf.pin_bit_mask = GPIO_Buzzer_PIN_SEL; // bit mask of the pins that you want to set
-    // io_conf.pull_down_en = 0;                // disable pull-down mode
-    // io_conf.pull_up_en = 0;                  // disable pull-up mode
-    // gpio_config(&io_conf);
-
     io_conf.intr_type = GPIO_INTR_NEGEDGE;     // interrupt of rising edge
     io_conf.pin_bit_mask = GPIO_SENSOR_PIN_SEL; // bit mask of the pins, use GPIO4/5 here
     io_conf.mode = GPIO_MODE_INPUT;            // set as input mode
@@ -237,7 +235,7 @@ static void gpio_task(void *arg)
     }
 }
 
-void LED_PWM_init(void)
+void led_switch_init(void)
 {
     // zero-initialize the config structure.
     gpio_config_t io_conf = {};

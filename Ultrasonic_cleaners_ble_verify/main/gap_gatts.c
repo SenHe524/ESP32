@@ -17,9 +17,9 @@
 
 #include "sdkconfig.h"
 #include "gap_gatts.h"
+#include "timer_gpio.h"
 
-
-extern uint16_t time_change_flag;
+extern uint16_t time_change_data;
 static int match_flag = 0;
 static int bond_flag = 0;
 ///Declare the static function
@@ -30,9 +30,9 @@ static uint8_t char1_str[] = {0x11,0x22,0x33};
 
 static esp_gatt_char_prop_t a_property = 0;
 
-static esp_attr_value_t gatts_demo_char1_val =
+static esp_attr_value_t gatts_char1_val =
 {
-    .attr_max_len = GATTS_DEMO_CHAR_VAL_LEN_MAX,
+    .attr_max_len = GATTS_CHAR_VAL_LEN_MAX,
     .attr_len     = sizeof(char1_str),
     .attr_value   = char1_str,
 };
@@ -108,18 +108,18 @@ static esp_ble_adv_params_t adv_params = {
 };
 
 struct gatts_profile_inst {
-    esp_gatts_cb_t gatts_cb;
-    uint16_t gatts_if;
-    uint16_t app_id;
-    uint16_t conn_id;
-    uint16_t service_handle;
-    esp_gatt_srvc_id_t service_id;
-    uint16_t char_handle;
-    esp_bt_uuid_t char_uuid;
-    esp_gatt_perm_t perm;
-    esp_gatt_char_prop_t property;
-    uint16_t descr_handle;
-    esp_bt_uuid_t descr_uuid;
+    esp_gatts_cb_t gatts_cb;       //GATT的回调函数
+    uint16_t gatts_if;             //GATT的接口
+    uint16_t app_id;               //应用的ID
+    uint16_t conn_id;              //连接的ID
+    uint16_t service_handle;       //服务Service句柄
+    esp_gatt_srvc_id_t service_id; //服务Service ID
+    uint16_t char_handle;          //特征Characteristic句柄
+    esp_bt_uuid_t char_uuid;       //特征Characteristic的UUID
+    esp_gatt_perm_t perm;          //特征属性Attribute 授权
+    esp_gatt_char_prop_t property; //特征Characteristic的特性
+    uint16_t descr_handle;         //描述descriptor句柄
+    esp_bt_uuid_t descr_uuid;      //描述descriptorUUID  
 };
 
 /* One gatt-based profile one app_id and one gatts_if, this array will store the gatts_if returned by ESP_GATTS_REG_EVT */
@@ -140,7 +140,6 @@ static prepare_type_env_t a_prepare_write_env;
 void example_write_event_env(esp_gatt_if_t gatts_if, prepare_type_env_t *prepare_write_env, esp_ble_gatts_cb_param_t *param);
 void example_exec_write_event_env(prepare_type_env_t *prepare_write_env, esp_ble_gatts_cb_param_t *param);
 void match(uint16_t num);
-
 static void show_bonded_devices(void)
 {
     int dev_num = esp_ble_get_bond_device_num();
@@ -156,8 +155,6 @@ static void show_bonded_devices(void)
 
     free(dev_list);
 }
-
-
 
 void example_write_event_env(esp_gatt_if_t gatts_if, prepare_type_env_t *prepare_write_env, esp_ble_gatts_cb_param_t *param){
     esp_gatt_status_t status = ESP_GATT_OK;
@@ -320,34 +317,17 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
         show_bonded_devices();
         break;
     }
-    case ESP_GAP_BLE_REMOVE_BOND_DEV_COMPLETE_EVT: {
-        ESP_LOGD(GATTS_TAG, "ESP_GAP_BLE_REMOVE_BOND_DEV_COMPLETE_EVT status = %d", param->remove_bond_dev_cmpl.status);
-        ESP_LOGI(GATTS_TAG, "ESP_GAP_BLE_REMOVE_BOND_DEV");
-        ESP_LOGI(GATTS_TAG, "-----ESP_GAP_BLE_REMOVE_BOND_DEV----");
-        esp_log_buffer_hex(GATTS_TAG, (void *)param->remove_bond_dev_cmpl.bd_addr, sizeof(esp_bd_addr_t));
-        ESP_LOGI(GATTS_TAG, "------------------------------------");
+    case ESP_GAP_BLE_REMOVE_BOND_DEV_COMPLETE_EVT: 
         break;
-    }
     case ESP_GAP_BLE_SET_LOCAL_PRIVACY_COMPLETE_EVT:
         if (param->local_privacy_cmpl.status != ESP_BT_STATUS_SUCCESS){
             ESP_LOGE(GATTS_TAG, "config local privacy failed, error status = %x", param->local_privacy_cmpl.status);
             break;
         }
-
-        esp_err_t ret = esp_ble_gap_config_adv_data(&adv_data);
-        if (ret){
-            ESP_LOGE(GATTS_TAG, "config adv data failed, error code = %x", ret);
-        }else{
-            adv_config_done |= adv_config_flag;
-        }
-
-        ret = esp_ble_gap_config_adv_data(&scan_rsp_data);
-        if (ret){
-            ESP_LOGE(GATTS_TAG, "config adv data failed, error code = %x", ret);
-        }else{
-            adv_config_done |= scan_rsp_config_flag;
-        }
-
+        esp_ble_gap_config_adv_data(&adv_data);
+        adv_config_done |= adv_config_flag;
+        esp_ble_gap_config_adv_data(&scan_rsp_data);
+        adv_config_done |= scan_rsp_config_flag;
         break;
     default:
         break;
@@ -362,7 +342,7 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
         gl_profile_tab[PROFILE_A_APP_ID].service_id.is_primary = true;
         gl_profile_tab[PROFILE_A_APP_ID].service_id.id.inst_id = 0x00;
         gl_profile_tab[PROFILE_A_APP_ID].service_id.id.uuid.len = ESP_UUID_LEN_16;
-        gl_profile_tab[PROFILE_A_APP_ID].service_id.id.uuid.uuid.uuid16 = GATTS_SERVICE_UUID_TEST_A;
+        gl_profile_tab[PROFILE_A_APP_ID].service_id.id.uuid.uuid.uuid16 = GATTS_SERVICE_UUID_A;
         esp_ble_gap_set_device_name(TEST_DEVICE_NAME);
 
 #ifdef CONFIG_SET_RAW_ADV_DATA
@@ -377,7 +357,7 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
         esp_ble_gap_config_adv_data(&scan_rsp_data);
         adv_config_done |= scan_rsp_config_flag;
 #endif
-        esp_ble_gatts_create_service(gatts_if, &gl_profile_tab[PROFILE_A_APP_ID].service_id, GATTS_NUM_HANDLE_TEST_A);
+        esp_ble_gatts_create_service(gatts_if, &gl_profile_tab[PROFILE_A_APP_ID].service_id, GATTS_NUM_HANDLE_A);
         break;
     }
     case ESP_GATTS_READ_EVT: {
@@ -385,11 +365,10 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
         esp_gatt_rsp_t rsp;
         memset(&rsp, 0, sizeof(esp_gatt_rsp_t));
         rsp.attr_value.handle = param->read.handle;
-        rsp.attr_value.len = 4;
-        rsp.attr_value.value[0] = 0x11;
-        rsp.attr_value.value[1] = 0x12;
-        rsp.attr_value.value[2] = 0x13;
-        rsp.attr_value.value[3] = 0x14;
+        rsp.attr_value.len = 3;
+        rsp.attr_value.value[0] = time_change_data/256/256;
+        rsp.attr_value.value[1] = time_change_data/256;
+        rsp.attr_value.value[2] = time_change_data%256;
         esp_ble_gatts_send_response(gatts_if, param->read.conn_id, param->read.trans_id,
                                     ESP_GATT_OK, &rsp);
         break;
@@ -399,13 +378,20 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
         if (!param->write.is_prep){
             ESP_LOGI(GATTS_TAG, "GATT_WRITE_EVT, value len %d, value :", param->write.len);
             esp_log_buffer_hex(GATTS_TAG, param->write.value, param->write.len);
+            printf("\n %d \n",bond_flag);
             if(bond_flag)
             {
                 if(match_flag)
                 {
-                    if((*param->write.value/100) < (*param->write.value%100))
+                    if(((*param->write.value/100) < (*param->write.value%100)) 
+                        && ((*param->write.value/100) > 0) && ((*param->write.value%100) > 0)
+                        && (*param->write.value < 9999))
                     {
-                        time_change_flag = *param->write.value;
+                        time_change_data = *param->write.value;
+                        nvs_open(NVS_DATA_STORAGE, NVS_READWRITE, &nvs_data_storage_handle);
+                        nvs_set_u16(nvs_data_storage_handle, TIMER_CHANGE, time_change_data);
+                        nvs_commit(nvs_data_storage_handle);
+                        nvs_close(nvs_data_storage_handle);
                     }
                 }
                 else
@@ -413,7 +399,7 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                     match(*param->write.value);
                 }
             }
-            ESP_LOGI(GATTS_TAG, "%d", time_change_flag);
+            ESP_LOGI(GATTS_TAG, "%d", time_change_data);
         }
         example_write_event_env(gatts_if, &a_prepare_write_env, param);
         break;
@@ -433,14 +419,14 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
         ESP_LOGI(GATTS_TAG, "CREATE_SERVICE_EVT, status %d,  service_handle %d\n", param->create.status, param->create.service_handle);
         gl_profile_tab[PROFILE_A_APP_ID].service_handle = param->create.service_handle;
         gl_profile_tab[PROFILE_A_APP_ID].char_uuid.len = ESP_UUID_LEN_16;
-        gl_profile_tab[PROFILE_A_APP_ID].char_uuid.uuid.uuid16 = GATTS_CHAR_UUID_TEST_A;
+        gl_profile_tab[PROFILE_A_APP_ID].char_uuid.uuid.uuid16 = GATTS_CHAR_UUID_A;
 
         esp_ble_gatts_start_service(gl_profile_tab[PROFILE_A_APP_ID].service_handle);
         a_property = ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_WRITE | ESP_GATT_CHAR_PROP_BIT_NOTIFY;
         esp_ble_gatts_add_char(gl_profile_tab[PROFILE_A_APP_ID].service_handle, &gl_profile_tab[PROFILE_A_APP_ID].char_uuid,
                                                         ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
                                                         a_property,
-                                                        &gatts_demo_char1_val, NULL);
+                                                        &gatts_char1_val, NULL);
         break;
     }
     case ESP_GATTS_ADD_INCL_SRVC_EVT:
@@ -479,7 +465,6 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
     case ESP_GATTS_STOP_EVT:
         break;
     case ESP_GATTS_CONNECT_EVT: {
-        ESP_LOGI(GATTS_TAG, "ESP_GATTS_CONNECT_EVT");
         /* start security connect with peer device when receive the connect event sent by the master */
         esp_ble_set_encryption(param->connect.remote_bda, ESP_BLE_SEC_ENCRYPT_MITM);
         
@@ -534,6 +519,8 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_
             return;
         }
     }
+    /*如果 gatts_if 等于 profile A，则调用 profile A cb handler，
+     * 所以这里调用每个 profile 的回调*/
     do {
         int idx;
         for (idx = 0; idx < PROFILE_NUM; idx++) {
@@ -558,13 +545,20 @@ void match(uint16_t num)
 void ble_control(void)
 {
     ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));
+    //esp_bt_controller_config_t是蓝牙控制器配置结构体，这里使用了一个默认的参数
     esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
+    //初始化蓝牙控制器 及是使能蓝牙控制器为BLE模式
     esp_bt_controller_init(&bt_cfg);
     esp_bt_controller_enable(ESP_BT_MODE_BLE);
+    //初始化蓝牙并分配系统资源，并使能蓝牙栈
     esp_bluedroid_init();
     esp_bluedroid_enable();
+    //建立蓝牙的FSM（有限状态机）
+    //这里使用回调函数来控制每个状态下的响应，需要将其在GATT和GAP层的回调函数注册
+    /*gatts_event_handler和gap_event_handler处理蓝牙栈可能发生的所有情况，达到FSM的效果*/
     esp_ble_gatts_register_callback(gatts_event_handler);
     esp_ble_gap_register_callback(gap_event_handler);
+    //下面创建了BLE GATT服务A，相当于1个独立的应用程序
     esp_ble_gatts_app_register(PROFILE_A_APP_ID);
     esp_ble_gatt_set_local_mtu(500);
     /* set the security iocap & auth_req & key size & init key response key parameters to the stack*/

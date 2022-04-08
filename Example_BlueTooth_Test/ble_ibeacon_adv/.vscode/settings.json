@@ -1,15 +1,3 @@
 {
-  "C_Cpp.intelliSenseEngine": "Tag Parser",
-  "idf.portWin": "COM5",
-  "idf.adapterTargetName": "esp32",
-  "idf.openOcdConfigs": [
-    "interface/ftdi/esp32_devkitj_v1.cfg",
-    "target/esp32.cfg"
-  ],
-  "files.associations": {
-    "esp_gap_ble_api.h": "c",
-    "stdint.h": "c",
-    "esp_gattc_api.h": "c",
-    "esp_bt_defs.h": "c"
-  }
+  "C_Cpp.intelliSenseEngine": "Tag Parser"
 }

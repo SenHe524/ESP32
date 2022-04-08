@@ -11,10 +11,12 @@
 #include "lwip/err.h"
 #include "lwip/sys.h"
 #include "wifi_connect.h"
+#include "gap_gatts.h"
+int wifi_flag = 1;
 /* FreeRTOS event group to signal when we are connected*/
 static EventGroupHandle_t s_wifi_event_group;
-int wifi_flag = 0;
 
+// static const char *WIFI_INFO = "wifi_information";
 static const char *TAG = "wifi station";
 
 static int s_retry_num = 0;
@@ -49,7 +51,7 @@ static void event_handler(void *arg, esp_event_base_t event_base,
     }
 }
 
-void wifi_init_sta(void)
+int wifi_init_sta(void)
 {
     s_wifi_event_group = xEventGroupCreate();//创建一个事件组
 
@@ -88,12 +90,12 @@ void wifi_init_sta(void)
              * However these modes are deprecated and not advisable to be used. Incase your Access point
              * doesn't support WPA2, these mode can be enabled by commenting below line */
             .threshold.authmode = WIFI_AUTH_WPA2_PSK,
-
             .pmf_cfg = {
                 .capable = true,
                 .required = false},
         },
     };
+
     //设置模式为站（station）模式
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     //初始化Station模式的Wifi配置
@@ -118,13 +120,16 @@ void wifi_init_sta(void)
     else if (bits & WIFI_FAIL_BIT){
         ESP_LOGI(TAG, "Failed to connect to SSID:%s, password:%s",
                  EXAMPLE_ESP_WIFI_SSID, EXAMPLE_ESP_WIFI_PASS);
-                 wifi_flag = 1;
+                 wifi_flag = 0;
     }
     else{
         ESP_LOGE(TAG, "UNEXPECTED EVENT");
+        wifi_flag = 0;
     }
     /* The event will not be processed after unregister */
     ESP_ERROR_CHECK(esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, instance_got_ip));
     ESP_ERROR_CHECK(esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, instance_any_id));
     vEventGroupDelete(s_wifi_event_group);
+
+    return wifi_flag;
 }
