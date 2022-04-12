@@ -33,7 +33,7 @@
 
 #define ADV_CONFIG_FLAG                           (1 << 0)
 #define SCAN_RSP_CONFIG_FLAG                      (1 << 1)
-
+static uint8_t mac_addr[6] = {0};
 static uint8_t adv_config_done = 0;
 
 static uint16_t heart_rate_handle_table[HRS_IDX_NB];
@@ -520,7 +520,8 @@ void app_main(void)
     esp_ble_gatts_register_callback(gatts_event_handler);
     esp_ble_gap_register_callback(gap_event_handler);
     esp_ble_gatts_app_register(ESP_HEART_RATE_APP_ID);
-
+    // esp_efuse_mac_get_default(mac_addr);
+    // printf("%d",*mac_addr);
 
     /* set the security iocap & auth_req & key size & init key response key parameters to the stack*/
     esp_ble_auth_req_t auth_req = ESP_LE_AUTH_REQ_SC_MITM_BOND;     //bonding with peer device after authentication
@@ -544,7 +545,8 @@ void app_main(void)
     and the init key means which key you can distribute to the slave. */
     esp_ble_gap_set_security_param(ESP_BLE_SM_SET_INIT_KEY, &init_key, sizeof(uint8_t));
     esp_ble_gap_set_security_param(ESP_BLE_SM_SET_RSP_KEY, &rsp_key, sizeof(uint8_t));
-
+    // esp_efuse_mac_get_default(mac_addr);
+    // printf("%x",*mac_addr);
     /* Just show how to clear all the bonded devices
      * Delay 30s, clear all the bonded devices
      *

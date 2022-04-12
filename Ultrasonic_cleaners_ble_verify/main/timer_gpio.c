@@ -48,7 +48,7 @@ void timer_gpio_init(void)
     gpio_set_level(GPIO_Green_IO,1);
 
     //从NVS中读取定时器时间配置
-    nvs_open(NVS_DATA_STORAGE, NVS_READWRITE, &nvs_data_storage_handle);
+    nvs_open(NVS_DATA, NVS_READWRITE, &nvs_data_storage_handle);
     nvs_get_u16(nvs_data_storage_handle, TIMER_CHANGE, &time_change_data);
     nvs_close(nvs_data_storage_handle);
     //初始化两个定时器

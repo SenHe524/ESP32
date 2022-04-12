@@ -322,19 +322,21 @@ void ota_detection(void)
     }
     ESP_ERROR_CHECK(err);
 
+    //创建LwIP核心任务并初始化相关工作（初始化底层TCP/IP栈。）
     ESP_ERROR_CHECK(esp_netif_init());
+    // 创建系统事件任务并初始化应用程序事件的回调函数
     ESP_ERROR_CHECK(esp_event_loop_create_default());
-    ota_Queue_t = xQueueCreate(10, sizeof(int));
+
+    ota_Queue_t = xQueueCreate(10, sizeof(int));//创建OTA队列句柄
     ESP_LOGI(TAG, "ESP_WIFI_MODE_STA");
-    // wifi_init_sta();
 
 #if CONFIG_EXAMPLE_CONNECT_WIFI
-    esp_wifi_set_ps(WIFI_PS_NONE);
+    esp_wifi_set_ps(WIFI_PS_NONE);//设置wifi不节能
 #endif // CONFIG_EXAMPLE_CONNECT_WIFI
-    if(wifi_init_sta()){
+    if(wifi_init_sta()){//若wifi初始化及连接成功，则创建OTA任务
         xTaskCreate(&ota_task, "ota_task", 8192, NULL, 5, (TaskHandle_t *)&Task_Ota_t);
     }
-    else{
+    else{//否则跳过OTA
         ota_flag = 1;
         xQueueSend(ota_Queue_t, &ota_flag, NULL);
     }

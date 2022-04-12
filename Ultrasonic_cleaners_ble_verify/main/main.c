@@ -24,15 +24,15 @@ int ota_confirm;
 
 void app_main(void)
 {
-    ota_detection();
+    ota_detection();//上电检测是否升级固件版本
     xQueueReceive(ota_Queue_t, &ota_confirm, portMAX_DELAY);//阻塞直到接收到ota_confirm
 
-    timer_gpio_init();
+    timer_gpio_init();//初始化定时器与Gpio口
 
     //启用蓝牙之前，将wifi停止掉
     esp_wifi_stop();
     esp_wifi_disconnect();
     esp_wifi_deinit();
     
-    ble_control();
+    ble_control();//开启蓝牙
 }

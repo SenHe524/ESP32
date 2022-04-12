@@ -17,7 +17,7 @@
 
 #include "sdkconfig.h"
 
-#define GATTS_TAG "GATTS_DEMO"
+#define GATTS_TAG "GATTS"
 
 #define DEVICE_NAME            "Ultrasonic_cleaners"
 
@@ -33,15 +33,17 @@
 #define PROFILE_A_APP_ID 0
 #define SVC_INST_ID 0
 
-static const char *NVS_DATA_STORAGE = "nvs_data";
+static const char *NVS_DATA = "nvs_data";
 static const char *TIMER_CHANGE = "timer_change";
-// static const char *WIFI_SSID_PASSWORD = "wifi_information";
+static const char *WIFI_SSID = "wifi_ssid";
+static const char *WIFI_PASSWORD = "wifi_password";
 
 nvs_handle_t nvs_data_storage_handle;  //NVS存储区句柄
 
 enum
 {
     IDX_SVC,
+    
     IDX_CHAR_A,
     IDX_CHAR_VAL_A,
     IDX_CHAR_CFG_A,
@@ -49,11 +51,11 @@ enum
     IDX_CHAR_B,
     IDX_CHAR_VAL_B,
 
-    // IDX_CHAR_C,
-    // IDX_CHAR_VAL_C,
+    IDX_CHAR_C,
+    IDX_CHAR_VAL_C,
 
-    // IDX_CHAR_D,
-    // IDX_CHAR_VAL_D,
+    IDX_CHAR_D,
+    IDX_CHAR_VAL_D,
 
     IDX_NB,
 };
