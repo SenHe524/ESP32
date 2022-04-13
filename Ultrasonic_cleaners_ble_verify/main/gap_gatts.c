@@ -20,8 +20,8 @@
 #include "timer_gpio.h"
 
 uint16_t time_data;
-static char WIFI_SSID_CHANGE[30];
-static char WIFI_PASSWORD_CHANGE[30];
+static char WIFI_SSID_CHANGE[32];
+static char WIFI_PASSWORD_CHANGE[64];
 static int bond_flag = 0;
 ///Declare the static function
 static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param);
@@ -397,6 +397,7 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
         if (!param->write.is_prep){
             ESP_LOGI(GATTS_TAG, "GATT_WRITE_EVT, value len %d, value :", param->write.len);
             esp_log_buffer_char(GATTS_TAG, param->write.value, param->write.len);
+            // printf("%d\n",bond_flag);
             if(bond_flag)
             {
                 switch(param->write.handle){
@@ -413,7 +414,7 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                     }
                     break;
                 case 45: {
-                    memcpy(WIFI_SSID_CHANGE,param->write.value, 30);
+                    memcpy(WIFI_SSID_CHANGE,param->write.value, 32);
                     nvs_open(NVS_DATA, NVS_READWRITE, &nvs_data_storage_handle);
                     nvs_set_str(nvs_data_storage_handle, WIFI_SSID, WIFI_SSID_CHANGE);
                     nvs_commit(nvs_data_storage_handle);
@@ -421,7 +422,7 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                     break;
                 }
                 case 47: {
-                    memcpy(WIFI_PASSWORD_CHANGE,param->write.value, 30);
+                    memcpy(WIFI_PASSWORD_CHANGE,param->write.value, 64);
                     nvs_open(NVS_DATA, NVS_READWRITE, &nvs_data_storage_handle);
                     nvs_set_str(nvs_data_storage_handle, WIFI_PASSWORD, WIFI_PASSWORD_CHANGE);
                     nvs_commit(nvs_data_storage_handle);
@@ -436,6 +437,8 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                 }
             }
         }
+        // printf("%s\n",WIFI_SSID_CHANGE);
+        // printf("%s\n",WIFI_PASSWORD_CHANGE);
         example_write_event_env(gatts_if, &a_prepare_write_env, param);
         break;
     }

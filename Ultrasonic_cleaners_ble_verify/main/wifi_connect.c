@@ -53,9 +53,10 @@ static void event_handler(void *arg, esp_event_base_t event_base,
 int wifi_init_sta(void)
 {
     s_wifi_event_group = xEventGroupCreate();//创建一个事件组
-    char wifi_name[30] = "TAC-GENRAY";
-    char wifi_pw[30] = "tacgenray2022";
-    uint32_t str_len = 30;
+    char wifi_name[32] = "TAC-GENRAY";
+    char wifi_pw[64] = "tacgenray2022";
+    uint32_t str_len_1 = 32;
+    uint32_t str_len_2 = 64;
     esp_netif_create_default_wifi_sta();
 	//定义一个名为cfg的wifi_init_config_t结构体，wifi_init_config_t的参数可由menuconfig配置
 	wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
@@ -77,9 +78,12 @@ int wifi_init_sta(void)
                                                         NULL,
                                                         &instance_got_ip));
     nvs_open(NVS_DATA, NVS_READWRITE, &nvs_data_storage_handle);
-    nvs_get_str(nvs_data_storage_handle, WIFI_SSID, wifi_name, &str_len);
-    nvs_get_str(nvs_data_storage_handle, WIFI_PASSWORD, wifi_pw, &str_len);
+    nvs_get_str(nvs_data_storage_handle, WIFI_SSID, wifi_name, &str_len_1);
+    nvs_get_str(nvs_data_storage_handle, WIFI_PASSWORD, wifi_pw, &str_len_2);
     nvs_close(nvs_data_storage_handle);
+
+    // printf("%s\n",wifi_name);
+    // printf("%s\n",wifi_pw);
     //初始化wifi的配置
     wifi_config_t wifi_config = {
         .sta = {
@@ -92,8 +96,8 @@ int wifi_init_sta(void)
             },
         },
     };
-    memcpy(wifi_config.sta.ssid,wifi_name, 30);
-    memcpy(wifi_config.sta.password,wifi_pw, 30);
+    memcpy(wifi_config.sta.ssid, wifi_name, 32);
+    memcpy(wifi_config.sta.password, wifi_pw, 64);
     //设置模式为站（station）模式
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     //初始化Station模式的Wifi配置

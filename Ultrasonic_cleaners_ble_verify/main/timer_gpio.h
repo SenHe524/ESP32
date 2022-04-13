@@ -40,6 +40,6 @@ typedef struct
 
 
 void timer_gpio_init(void);
-void gpio_intr_init(void);
+
 
 

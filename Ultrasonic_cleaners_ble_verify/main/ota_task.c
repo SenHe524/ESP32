@@ -48,6 +48,7 @@ static void __attribute__((noreturn)) task_fatal_error(void)
     }
 }
 
+//OTA任务
 static void ota_task(void *pvParameter)
 {
     esp_err_t err;

@@ -15,8 +15,9 @@ uint16_t time_change_data = 0;
 
 static xQueueHandle gpio_Queue_t;  // Gpio队列句柄
 
+void gpio_intr_init(void);
 static void timer_init_test(int group, int index, bool auto_reload, int timer_interval_sec); //定时器参数初始化与定时器注册函数
-static bool IRAM_ATTR timer_isr_callback_test(void *args);                                   //定时器的ISR回调函数
+static bool IRAM_ATTR timer_isr_callback(void *args);                                   //定时器的ISR回调函数
 void soft_timer_callback_open(void *arg);
 void soft_timer_callback_close(void *arg);
 
@@ -40,6 +41,7 @@ const esp_timer_create_args_t soft_timer_args_close = {
             .name = "soft_timer_close"
     };
 
+
 void timer_gpio_init(void)
 {
     esp_timer_init();    //软件定时器接口初始化
@@ -56,7 +58,8 @@ void timer_gpio_init(void)
     timer_init_test(TIMER_GROUP_0, TIMER_1, true, time_change_data%100);
 }
 
-static bool IRAM_ATTR timer_isr_callback_test(void *args)
+//定时器的回调函数
+static bool IRAM_ATTR timer_isr_callback(void *args)
 {
     BaseType_t high_task_awoken = pdFALSE;
     timer_test_info_t *timer_info_callback = (timer_test_info_t *)args;
@@ -127,6 +130,7 @@ static bool IRAM_ATTR timer_isr_callback_test(void *args)
     return high_task_awoken == pdTRUE;
 }
 
+
 void soft_timer_callback_open(void *arg)
 {
     gpio_set_level(GPIO_SWITCH_OPEN_IO,0);
@@ -142,6 +146,7 @@ void soft_timer_callback_close(void *arg)
     esp_timer_delete(soft_timer_close);
 }
 
+//初始化定时器
 static void timer_init_test(int group, int index, bool auto_reload, int timer_interval_sec)
 {
     timer_config_t timer_config = {
@@ -166,10 +171,11 @@ static void timer_init_test(int group, int index, bool auto_reload, int timer_in
     timer_info->auto_reload = auto_reload;
 
     //注册ISR中断
-    timer_isr_callback_add(group, index, timer_isr_callback_test, timer_info, 0);
+    timer_isr_callback_add(group, index, timer_isr_callback, timer_info, 0);
     // timer_start(group,index);
 }
 
+//注册IO口的中断处理函数
 static void IRAM_ATTR gpio_isr_handler(void *arg)
 {
     //检测io口中断
@@ -177,6 +183,7 @@ static void IRAM_ATTR gpio_isr_handler(void *arg)
     xQueueSendFromISR(gpio_Queue_t, &gpio_num, NULL);
 }
 
+//传感器IO口初始化  
 void gpio_intr_init(void)
 {
     // zero-initialize the config structure.
@@ -202,6 +209,7 @@ void gpio_intr_init(void)
     gpio_isr_handler_add(GPIO_SENSOR_IO_0, gpio_isr_handler, (void *)GPIO_SENSOR_IO_0);
 }
 
+//传感器IO口检测到信号后，执行一系列任务
 static void gpio_task(void *arg)
 {
     uint32_t io_num;
@@ -235,6 +243,7 @@ static void gpio_task(void *arg)
     }
 }
 
+//LED和开关的IO口初始化函数
 void led_switch_init(void)
 {
     // zero-initialize the config structure.

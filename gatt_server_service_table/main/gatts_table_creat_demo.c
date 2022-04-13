@@ -524,6 +524,11 @@ void app_main(void)
     ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));
 
     esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
+
+    uint8_t mac[6] = {0};
+    esp_efuse_mac_get_default(mac);
+    ESP_LOG_BUFFER_HEX(GATTS_TABLE_TAG,mac,6);
+
     ret = esp_bt_controller_init(&bt_cfg);
     if (ret) {
         ESP_LOGE(GATTS_TABLE_TAG, "%s enable controller failed: %s", __func__, esp_err_to_name(ret));
