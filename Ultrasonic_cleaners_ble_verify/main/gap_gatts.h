@@ -57,6 +57,9 @@ enum
     IDX_CHAR_D,
     IDX_CHAR_VAL_D,
 
+    IDX_CHAR_E,
+    IDX_CHAR_VAL_E,
+
     IDX_NB,
 };
 
