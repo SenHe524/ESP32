@@ -19,9 +19,12 @@
 #include "gap_gatts.h"
 #include "timer_gpio.h"
 
-uint16_t time_data;
+uint32_t time_data;
+uint32_t passkey_temp = 202204;
 static char WIFI_SSID_CHANGE[32];
 static char WIFI_PASSWORD_CHANGE[64];
+// static char ota_url[64] = {0};
+// uint32_t ota_url;
 static int bond_flag = 0;
 ///Declare the static function
 static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param);
@@ -30,12 +33,13 @@ uint16_t uc_handle_table[IDX_NB];
 
 /* Service */
 static const uint16_t GATTS_SERVICE_UUID      = 0x00FF;
-static const uint16_t GATTS_CHAR_UUID_A       = 0xFF01;
-static const uint16_t GATTS_CHAR_UUID_B       = 0xFF02;
-static const uint16_t GATTS_CHAR_UUID_C       = 0xFF03;
-static const uint16_t GATTS_CHAR_UUID_D       = 0xFF04;
-static const uint16_t GATTS_CHAR_UUID_E       = 0xFF05;
-
+static const uint16_t GATTS_CHAR_UUID_A       = 0xFF01; //清洗时间
+static const uint16_t GATTS_CHAR_UUID_B       = 0xFF02; //WIFI账号
+static const uint16_t GATTS_CHAR_UUID_C       = 0xFF03; //WIFI密码
+static const uint16_t GATTS_CHAR_UUID_D       = 0xFF04; //BLE MAC
+static const uint16_t GATTS_CHAR_UUID_E       = 0xFF05; //WIFI MAC
+static const uint16_t GATTS_CHAR_UUID_F       = 0xFF06; //服务器地址更改
+static const uint16_t GATTS_CHAR_UUID_G       = 0xFF07; //验证密码更改
 static const uint16_t primary_service_uuid         = ESP_GATT_UUID_PRI_SERVICE;
 static const uint16_t character_declaration_uuid   = ESP_GATT_UUID_CHAR_DECLARE;
 static const uint16_t character_client_config_uuid = ESP_GATT_UUID_CHAR_CLIENT_CONFIG;
@@ -183,14 +187,35 @@ static const esp_gatts_attr_db_t gatt_db[IDX_NB] =
     [IDX_CHAR_VAL_D]  =
     {{ESP_GATT_RSP_BY_APP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_D, ESP_GATT_PERM_READ,
       GATTS_CHAR_VAL_LEN_MAX, sizeof(char_value), (uint8_t *)char_value}},
-
+    
+    /* Characteristic Declaration   特征E声明*/
     [IDX_CHAR_E]      =
     {{ESP_GATT_RSP_BY_APP}, {ESP_UUID_LEN_16, (uint8_t *)&character_declaration_uuid, ESP_GATT_PERM_READ,
       CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE, (uint8_t *)&char_prop_read}},
 
-    /* Characteristic Value   特征D的值*/
+    /* Characteristic Value   特征E的值*/
     [IDX_CHAR_VAL_E]  =
     {{ESP_GATT_RSP_BY_APP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_E, ESP_GATT_PERM_READ,
+      GATTS_CHAR_VAL_LEN_MAX, sizeof(char_value), (uint8_t *)char_value}},
+
+    /* Characteristic Declaration  特征F声明 */
+    [IDX_CHAR_F]      =
+    {{ESP_GATT_RSP_BY_APP}, {ESP_UUID_LEN_16, (uint8_t *)&character_declaration_uuid, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
+      CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE, (uint8_t *)&char_prop_read_write_notify}},
+
+    /* Characteristic Value   特征F的值*/
+    [IDX_CHAR_VAL_F]  =
+    {{ESP_GATT_RSP_BY_APP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_F, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
+      GATTS_CHAR_VAL_LEN_MAX, sizeof(char_value), (uint8_t *)char_value}},
+
+    /* Characteristic Declaration  特征G声明 */
+    [IDX_CHAR_G]      =
+    {{ESP_GATT_RSP_BY_APP}, {ESP_UUID_LEN_16, (uint8_t *)&character_declaration_uuid, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
+      CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE, (uint8_t *)&char_prop_read_write_notify}},
+
+    /* Characteristic Value   特征G的值*/
+    [IDX_CHAR_VAL_G]  =
+    {{ESP_GATT_RSP_BY_APP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_G, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
       GATTS_CHAR_VAL_LEN_MAX, sizeof(char_value), (uint8_t *)char_value}},
 
 };
@@ -398,7 +423,8 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
         uint32_t str_len_2 = 64;
         memset(&rsp, 0, sizeof(esp_gatt_rsp_t));
         nvs_open(NVS_DATA, NVS_READWRITE, &nvs_data_storage_handle);
-        nvs_get_u16(nvs_data_storage_handle, TIMER_CHANGE, &time_data);
+        nvs_get_u32(nvs_data_storage_handle, TIMER_CHANGE, &time_data);
+        nvs_get_u32(nvs_data_storage_handle, PASSKEY, &passkey_temp);
         nvs_get_str(nvs_data_storage_handle, WIFI_SSID, WIFI_SSID_CHANGE, &str_len_1);
         nvs_get_str(nvs_data_storage_handle, WIFI_PASSWORD, WIFI_PASSWORD_CHANGE, &str_len_2);
         nvs_close(nvs_data_storage_handle);
@@ -424,10 +450,25 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                     rsp.attr_value.len = 6;
                     memcpy(rsp.attr_value.value, mac, 6);
                     break;
-                case 51:
+                case 51:{
                     esp_read_mac(mac, ESP_MAC_WIFI_STA);
                     rsp.attr_value.len = 6;
                     memcpy(rsp.attr_value.value, mac, 6);
+                    break;
+                }
+                case 53:
+                //     rsp.attr_value.len = 2;
+                //     rsp.attr_value.value[0] = ota_url/256;
+                //     rsp.attr_value.value[1] = ota_url%256;
+                    printf("53\n");
+                    break;
+                case 55:
+                    rsp.attr_value.len = 4;
+                    rsp.attr_value.value[0] = passkey_temp/256/256/256;
+                    rsp.attr_value.value[1] = passkey_temp/256/256;
+                    rsp.attr_value.value[2] = passkey_temp/256;
+                    rsp.attr_value.value[3] = passkey_temp%256;
+                    break;
                 default:
                     break;
                 }
@@ -440,9 +481,9 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
         if (!param->write.is_prep){
             ESP_LOGI(GATTS_TAG, "GATT_WRITE_EVT, value len %d, value :", param->write.len);
             esp_log_buffer_char(GATTS_TAG, param->write.value, param->write.len);
-            // printf("%d\n",bond_flag);
             if(bond_flag)
             {
+                
                 switch(param->write.handle){
                 case 42:
                     if(((*param->write.value/100) < (*param->write.value%100)) 
@@ -451,7 +492,7 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                     {
                         time_data = *param->write.value;
                         nvs_open(NVS_DATA, NVS_READWRITE, &nvs_data_storage_handle);
-                        nvs_set_u16(nvs_data_storage_handle, TIMER_CHANGE, time_data);
+                        nvs_set_u32(nvs_data_storage_handle, TIMER_CHANGE, time_data);
                         nvs_commit(nvs_data_storage_handle);
                         nvs_close(nvs_data_storage_handle);
                     }
@@ -472,16 +513,37 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                     nvs_close(nvs_data_storage_handle);
                     break;
                 }
-                case 49:
-                    // flag_test4 = *param->write.value;
+                case 53:{
+                    // ota_url = *param->write.value;
+                    // nvs_open(NVS_DATA, NVS_READWRITE, &nvs_data_storage_handle);
+                    // nvs_set_u32(nvs_data_storage_handle, OTA_URL, ota_url);
+                    // nvs_commit(nvs_data_storage_handle);
+                    // nvs_close(nvs_data_storage_handle);
+                    // printf("%d\n",ota_url);
+                    
+                    // ota_url = (char *)malloc(sizeof(param->write.value));
+                    // memcpy(ota_url,param->write.value, 64);
+                    // nvs_open(NVS_DATA, NVS_READWRITE, &nvs_data_storage_handle);
+                    // nvs_set_str(nvs_data_storage_handle, OTA_URL, ota_url);
+                    // nvs_commit(nvs_data_storage_handle);
+                    // nvs_close(nvs_data_storage_handle);
+                    // ESP_LOGE(GATTS_TAG, "url: %s",ota_url);
+                    
                     break;
+                }
+                case 55: {
+                    passkey_temp = *param->write.value;
+                    nvs_open(NVS_DATA, NVS_READWRITE, &nvs_data_storage_handle);
+                    nvs_set_u32(nvs_data_storage_handle, PASSKEY, passkey_temp);
+                    nvs_commit(nvs_data_storage_handle);
+                    nvs_close(nvs_data_storage_handle);
+                    break;
+                }
                 default:
                     break;
                 }
             }
         }
-        // printf("%s\n",WIFI_SSID_CHANGE);
-        // printf("%s\n",WIFI_PASSWORD_CHANGE);
         example_write_event_env(gatts_if, &a_prepare_write_env, param);
         break;
     }
@@ -641,7 +703,10 @@ void ble_control(void)
     uint8_t init_key = ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK;
     uint8_t rsp_key = ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK;
     //set static passkey
-    uint32_t passkey = 202204;
+    nvs_open(NVS_DATA, NVS_READWRITE, &nvs_data_storage_handle);
+    nvs_get_u32(nvs_data_storage_handle, PASSKEY, &passkey_temp);
+    nvs_close(nvs_data_storage_handle);
+    uint32_t passkey = passkey_temp;
     uint8_t auth_option = ESP_BLE_ONLY_ACCEPT_SPECIFIED_AUTH_DISABLE;
     uint8_t oob_support = ESP_BLE_OOB_DISABLE;
     esp_ble_gap_set_security_param(ESP_BLE_SM_SET_STATIC_PASSKEY, &passkey, sizeof(uint32_t));

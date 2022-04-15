@@ -37,7 +37,8 @@ static const char *NVS_DATA = "nvs_data";
 static const char *TIMER_CHANGE = "timer_change";
 static const char *WIFI_SSID = "wifi_ssid";
 static const char *WIFI_PASSWORD = "wifi_password";
-
+static const char *OTA_URL = "ota_url";
+static const char *PASSKEY = "passkey";
 nvs_handle_t nvs_data_storage_handle;  //NVS存储区句柄
 
 enum
@@ -59,6 +60,12 @@ enum
 
     IDX_CHAR_E,
     IDX_CHAR_VAL_E,
+
+    IDX_CHAR_F,
+    IDX_CHAR_VAL_F,
+
+    IDX_CHAR_G,
+    IDX_CHAR_VAL_G,
 
     IDX_NB,
 };

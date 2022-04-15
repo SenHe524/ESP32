@@ -81,14 +81,11 @@ int wifi_init_sta(void)
     nvs_get_str(nvs_data_storage_handle, WIFI_SSID, wifi_name, &str_len_1);
     nvs_get_str(nvs_data_storage_handle, WIFI_PASSWORD, wifi_pw, &str_len_2);
     nvs_close(nvs_data_storage_handle);
-
-    // printf("%s\n",wifi_name);
-    // printf("%s\n",wifi_pw);
     //初始化wifi的配置
     wifi_config_t wifi_config = {
         .sta = {
-            .ssid = "test",
-            .password = "testt",
+            .ssid = "NULL",
+            .password = "NULL",
             .threshold.authmode = WIFI_AUTH_WPA2_PSK,
             .pmf_cfg = {
                 .capable = true,

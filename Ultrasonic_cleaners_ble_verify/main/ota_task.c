@@ -15,9 +15,9 @@
 #include "errno.h"
 #include "ota_task.h"
 #include "wifi_connect.h"
-
+#include "gap_gatts.h"
 int ota_flag = 0;
-
+// static char ota_url[64] ={0};
 xQueueHandle ota_Queue_t;
 
 static const char *TAG = "Ultrasonic_cleaners_Ota";
@@ -71,12 +71,21 @@ static void ota_task(void *pvParameter)
     }
     ESP_LOGI(TAG, "Running partition type %d subtype %d (offset 0x%08x)",
              running->type, running->subtype, running->address);
-
+    // uint32_t str_len_1 = 64;
+    // nvs_open(NVS_DATA, NVS_READWRITE, &nvs_data_storage_handle);
+    // nvs_get_str(nvs_data_storage_handle, OTA_URL, ota_url, &str_len_1);
+    // nvs_close(nvs_data_storage_handle);
+    // memcpy(config.url, ota_url, 64);
     esp_http_client_config_t config = {
+        // .url = ota_url,
         .url = CONFIG_EXAMPLE_FIRMWARE_UPG_URL,
         .timeout_ms = CONFIG_EXAMPLE_OTA_RECV_TIMEOUT,
         .keep_alive_enable = true,
     };
+    
+    // char ota_url[64] ={0};
+    // // ota_url = (char *)malloc(64);
+    
 
 #ifdef CONFIG_EXAMPLE_FIRMWARE_UPGRADE_URL_FROM_STDIN
     char url_buf[OTA_URL_SIZE];
@@ -167,10 +176,7 @@ static void ota_task(void *pvParameter)
                             ESP_LOGW(TAG, "Previously, there was an attempt to launch the firmware with %s version, but it failed.", invalid_app_info.version);
                             ESP_LOGW(TAG, "The firmware has been rolled back to the previous version.");
                             http_cleanup(client);
-                            ota_flag = 1;
-                            xQueueSend(ota_Queue_t, &ota_flag, NULL);
-                            vTaskSuspend(Task_Ota_t);
-                            // return ;
+                            task_fatal_error();
                         }
                     }
 #ifndef CONFIG_EXAMPLE_SKIP_VERSION_CHECK
@@ -178,10 +184,7 @@ static void ota_task(void *pvParameter)
                     {
                         ESP_LOGW(TAG, "Current running version is the same as the new or later. We will not continue the update.");
                         http_cleanup(client);
-                        ota_flag = 1;
-                        xQueueSend(ota_Queue_t, &ota_flag, NULL);
-                        vTaskSuspend(Task_Ota_t);
-                        // return ;
+                        task_fatal_error();
                     }
 #endif
 
@@ -335,7 +338,7 @@ void ota_detection(void)
     esp_wifi_set_ps(WIFI_PS_NONE);//设置wifi不节能
 #endif // CONFIG_EXAMPLE_CONNECT_WIFI
     if(wifi_init_sta()){//若wifi初始化及连接成功，则创建OTA任务
-        xTaskCreate(&ota_task, "ota_task", 8192, NULL, 5, (TaskHandle_t *)&Task_Ota_t);
+        xTaskCreate(&ota_task, "ota_task", 4096, NULL, 4, (TaskHandle_t *)&Task_Ota_t);
     }
     else{//否则跳过OTA
         ota_flag = 1;

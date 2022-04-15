@@ -16,6 +16,7 @@
     "utility": "c",
     "esp_gap_ble_api.h": "c",
     "string_view": "c",
-    "regex": "c"
+    "regex": "c",
+    "*.inc": "c"
   }
 }
