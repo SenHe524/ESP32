@@ -141,6 +141,7 @@ static void ota_task(void *pvParameter)
         {
             ESP_LOGE(TAG, "Error: SSL data read error");
             http_cleanup(client);
+            esp_ota_abort(update_handle);
             task_fatal_error();
         }
         else if (data_read > 0)
@@ -176,6 +177,7 @@ static void ota_task(void *pvParameter)
                             ESP_LOGW(TAG, "Previously, there was an attempt to launch the firmware with %s version, but it failed.", invalid_app_info.version);
                             ESP_LOGW(TAG, "The firmware has been rolled back to the previous version.");
                             http_cleanup(client);
+                            esp_ota_abort(update_handle);
                             task_fatal_error();
                         }
                     }
@@ -184,6 +186,7 @@ static void ota_task(void *pvParameter)
                     {
                         ESP_LOGW(TAG, "Current running version is the same as the new or later. We will not continue the update.");
                         http_cleanup(client);
+                        esp_ota_abort(update_handle);
                         task_fatal_error();
                     }
 #endif
@@ -268,11 +271,10 @@ static void ota_task(void *pvParameter)
         task_fatal_error();
     }
     ESP_LOGI(TAG, "Prepare to restart system!");
-    // vTaskDelete(Task_Ota_t);
     ota_flag = 1;
     xQueueSend(ota_Queue_t, &ota_flag, NULL);
     esp_restart();
-    // return ;
+    return ;
 }
 
 static bool diagnostic(void)
