@@ -17,7 +17,7 @@
 #include "wifi_connect.h"
 #include "gap_gatts.h"
 int ota_flag = 0;
-// static char ota_url[64] ={0};
+static char ota_url[64] ={"http://172.18.0.70:10031/motoc/gImage/UC1000.bin"};
 xQueueHandle ota_Queue_t;
 
 static const char *TAG = "Ultrasonic_cleaners_Ota";
@@ -71,21 +71,17 @@ static void ota_task(void *pvParameter)
     }
     ESP_LOGI(TAG, "Running partition type %d subtype %d (offset 0x%08x)",
              running->type, running->subtype, running->address);
-    // uint32_t str_len_1 = 64;
-    // nvs_open(NVS_DATA, NVS_READWRITE, &nvs_data_storage_handle);
-    // nvs_get_str(nvs_data_storage_handle, OTA_URL, ota_url, &str_len_1);
-    // nvs_close(nvs_data_storage_handle);
-    // memcpy(config.url, ota_url, 64);
+    uint32_t str_len_1 = 64;
+    nvs_open(NVS_DATA, NVS_READWRITE, &nvs_data_storage_handle);
+    nvs_get_str(nvs_data_storage_handle, OTA_URL, ota_url, &str_len_1);
+    nvs_close(nvs_data_storage_handle);
+    puts(ota_url);
     esp_http_client_config_t config = {
-        // .url = ota_url,
-        .url = CONFIG_EXAMPLE_FIRMWARE_UPG_URL,
+        .url = ota_url,
+        // .url = CONFIG_EXAMPLE_FIRMWARE_UPG_URL,
         .timeout_ms = CONFIG_EXAMPLE_OTA_RECV_TIMEOUT,
         .keep_alive_enable = true,
     };
-    
-    // char ota_url[64] ={0};
-    // // ota_url = (char *)malloc(64);
-    
 
 #ifdef CONFIG_EXAMPLE_FIRMWARE_UPGRADE_URL_FROM_STDIN
     char url_buf[OTA_URL_SIZE];
