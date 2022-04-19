@@ -25,6 +25,7 @@ static char WIFI_SSID_CHANGE[32];//WiFi名字
 static char WIFI_PASSWORD_CHANGE[64];//WiFi密码
 static char ota_url[64] = {"http://172.18.0.70:10031/motoc/gImage/UC1000.bin"};//OTA服务器
 uint16_t device_serial_number = 1001;//设备SN
+uint16_t firmware_Version = 1007;//固件版本
 static int bond_flag = 0;//绑定标志位
 
 ///Declare the static function
@@ -42,6 +43,7 @@ static const uint16_t GATTS_CHAR_UUID_E       = 0xFF05; //WIFI MAC
 static const uint16_t GATTS_CHAR_UUID_F       = 0xFF06; //服务器地址更改
 static const uint16_t GATTS_CHAR_UUID_G       = 0xFF07; //验证密码更改
 static const uint16_t GATTS_CHAR_UUID_H       = 0xFF08; //设备SN
+static const uint16_t GATTS_CHAR_UUID_I       = 0xFF09; //固件版本
 static const uint16_t primary_service_uuid         = ESP_GATT_UUID_PRI_SERVICE;
 static const uint16_t character_declaration_uuid   = ESP_GATT_UUID_CHAR_DECLARE;
 static const uint16_t character_client_config_uuid = ESP_GATT_UUID_CHAR_CLIENT_CONFIG;
@@ -228,6 +230,16 @@ static const esp_gatts_attr_db_t gatt_db[IDX_NB] =
     /* Characteristic Value   特征H的值*/
     [IDX_CHAR_VAL_H]  =
     {{ESP_GATT_RSP_BY_APP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_H, ESP_GATT_PERM_READ,
+      GATTS_CHAR_VAL_LEN_MAX, sizeof(char_value), (uint8_t *)char_value}},
+
+    /* Characteristic Declaration  特征I声明 */
+    [IDX_CHAR_I]      =
+    {{ESP_GATT_RSP_BY_APP}, {ESP_UUID_LEN_16, (uint8_t *)&character_declaration_uuid, ESP_GATT_PERM_READ,
+      CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE, (uint8_t *)&char_prop_read}},
+
+    /* Characteristic Value   特征I的值*/
+    [IDX_CHAR_VAL_I]  =
+    {{ESP_GATT_RSP_BY_APP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_I, ESP_GATT_PERM_READ,
       GATTS_CHAR_VAL_LEN_MAX, sizeof(char_value), (uint8_t *)char_value}},
 
 };
@@ -442,17 +454,19 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
         esp_gatt_rsp_t rsp;
         // memset(&rsp, 0, sizeof(esp_gatt_rsp_t));
         uint8_t mac[6] = {0};
-        uint32_t str_len_1 = 32;
-        uint32_t str_len_2 = 64;
-        size_t required_size = 0;
+        size_t ssid_size = 0;
+        size_t password_size = 0;
+        size_t ota_size = 0;
         nvs_open(NVS_DATA, NVS_READWRITE, &nvs_data_storage_handle);
         nvs_get_u32(nvs_data_storage_handle, TIMER_CHANGE, &time_data);
         nvs_get_u32(nvs_data_storage_handle, PASSKEY, &passkey_temp);
-        nvs_get_str(nvs_data_storage_handle, WIFI_SSID, WIFI_SSID_CHANGE, &str_len_1);
-        nvs_get_str(nvs_data_storage_handle, WIFI_PASSWORD, WIFI_PASSWORD_CHANGE, &str_len_2);
-        //注：读取OTA_URL时，先传入一个NULL 获取数据长度：required_size，再进行读取
-        nvs_get_str(nvs_data_storage_handle, OTA_URL, NULL, &required_size);
-        nvs_get_str(nvs_data_storage_handle, OTA_URL, ota_url, &required_size);
+        //注：读取string时，先传入一个NULL 获取数据长度：required_size，再进行读取
+        nvs_get_str(nvs_data_storage_handle, WIFI_SSID, NULL, &ssid_size);
+        nvs_get_str(nvs_data_storage_handle, WIFI_SSID, WIFI_SSID_CHANGE, &ssid_size);
+        nvs_get_str(nvs_data_storage_handle, WIFI_PASSWORD, NULL, &password_size);
+        nvs_get_str(nvs_data_storage_handle, WIFI_PASSWORD, WIFI_PASSWORD_CHANGE, &password_size);
+        nvs_get_str(nvs_data_storage_handle, OTA_URL, NULL, &ota_size);
+        nvs_get_str(nvs_data_storage_handle, OTA_URL, ota_url, &ota_size);
         nvs_close(nvs_data_storage_handle);
         //读取NVS分区使用情况
         // nvs_stats_t nvs_stats;
@@ -470,13 +484,13 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                 }
                     
                 case 45: {//返回wifi名字
-                    rsp.attr_value.len = 32;
-                    memcpy(rsp.attr_value.value, WIFI_SSID_CHANGE, 32);
+                    rsp.attr_value.len = ssid_size-1;
+                    memcpy(rsp.attr_value.value, WIFI_SSID_CHANGE, ssid_size-1);
                     break;
                 }
                 case 47: {//返回wifi密码
-                    rsp.attr_value.len = 64;
-                    memcpy(rsp.attr_value.value, WIFI_PASSWORD_CHANGE, 64);
+                    rsp.attr_value.len = password_size-1;
+                    memcpy(rsp.attr_value.value, WIFI_PASSWORD_CHANGE, password_size-1);
                     break;
                 }
                 case 49: {//返回蓝牙MAC地址
@@ -493,15 +507,13 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                     break;
                 }
                 case 53: {//返回服务器地址
-                    rsp.attr_value.len = 64;
-                    puts(ota_url);
-                    memcpy(rsp.attr_value.value, ota_url, 64);
+                    rsp.attr_value.len = ota_size-1;
+                    memcpy(rsp.attr_value.value, ota_url, ota_size-1);
                     break;
                 }
                     
                 case 55: {//返回配对验证密码
                     rsp.attr_value.len = 3;
-                    // memcpy(rsp.attr_value.value, passkey_temp, rsp.attr_value.len);
                     rsp.attr_value.value[0] = passkey_temp/256/256;
                     rsp.attr_value.value[1] = passkey_temp/256;
                     rsp.attr_value.value[2] = passkey_temp%256;
@@ -510,9 +522,14 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                     
                 case 57: {//返回设备SN
                     rsp.attr_value.len = 2;
-                    // memcpy(rsp.attr_value.value, device_serial_number, rsp.attr_value.len);
                     rsp.attr_value.value[0] = device_serial_number/256;
                     rsp.attr_value.value[1] = device_serial_number%256;
+                    break;
+                }
+                case 59: {//返回固件版本
+                    rsp.attr_value.len = 2;
+                    rsp.attr_value.value[0] = firmware_Version/256;
+                    rsp.attr_value.value[1] = firmware_Version%256;
                     break;
                 }
                 default:

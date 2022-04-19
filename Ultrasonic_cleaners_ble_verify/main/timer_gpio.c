@@ -16,10 +16,9 @@ uint32_t time_change_data = 0;
 static xQueueHandle gpio_Queue_t;  // Gpio队列句柄
 
 void gpio_intr_init(void);
-static void timer_init_test(int group, int index, bool auto_reload, int timer_interval_sec); //定时器参数初始化与定时器注册函数
+static void timer_init_set(int group, int index, bool auto_reload, int timer_interval_sec); //定时器参数初始化与定时器注册函数
 static bool IRAM_ATTR timer_isr_callback(void *args);                                   //定时器的ISR回调函数
-void soft_timer_callback_open(void *arg);
-void soft_timer_callback_close(void *arg);
+void soft_timer_callback(void *arg);
 
 static void IRAM_ATTR gpio_isr_handler(void *arg); // Gpio的ISR回调函数
 static void gpio_task(void *arg);  
@@ -27,20 +26,14 @@ void led_switch_init(void);
 
 static int flag_timer_0 = 0; //定时器0的标志位
 static int flag_timer_1 = 0; //定时器1的标志位
-
-esp_timer_handle_t soft_timer_open;//创建软件定时器句柄
-const esp_timer_create_args_t soft_timer_args_open = {
-            .callback = &soft_timer_callback_open,
+// bool count = true;//定时器是否第一次启动标志位，ture表示第一次，false表示不是第一次
+static int count = 0;
+esp_timer_handle_t soft_timer;//创建软件定时器句柄
+const esp_timer_create_args_t soft_timer_args = {
+            .callback = &soft_timer_callback,
             .arg = NULL,
-            .name = "soft_timer_open"
+            .name = "soft_timer"
     };
-esp_timer_handle_t soft_timer_close;//创建软件定时器句柄
-const esp_timer_create_args_t soft_timer_args_close = {
-            .callback = &soft_timer_callback_close,
-            .arg = NULL,
-            .name = "soft_timer_close"
-    };
-
 
 void timer_gpio_init(void)
 {
@@ -50,10 +43,9 @@ void timer_gpio_init(void)
     gpio_set_level(GPIO_Green_IO,1);
 
     //初始化两个定时器
-    timer_init_test(TIMER_GROUP_0, TIMER_0, true,time_change_data/100);
-    timer_init_test(TIMER_GROUP_0, TIMER_1, true, time_change_data%100);
-    esp_timer_create(&soft_timer_args_open, &soft_timer_open);
-    esp_timer_create(&soft_timer_args_close, &soft_timer_close);
+    timer_init_set(TIMER_GROUP_0, TIMER_0, true,time_change_data/100);
+    timer_init_set(TIMER_GROUP_0, TIMER_1, true, time_change_data%100);
+    esp_timer_create(&soft_timer_args, &soft_timer);
 }
 
 //定时器的回调函数
@@ -102,50 +94,53 @@ static bool IRAM_ATTR timer_isr_callback(void *args)
                 timer_counter_val);
         }
     }
+    if(count>1){//不是定时器第一次启动时进入这里
+        if (timer_info_callback->timer_index)
+        {
+            timer_pause(TIMER_GROUP_0, TIMER_1); //停止本定时器
+            flag_timer_1 = 0;   //1号定时器计时完成时，标志位置零
 
-    if (timer_info_callback->timer_index)
-    {
-        timer_pause(TIMER_GROUP_0, TIMER_1); //停止本定时器
-        flag_timer_1 = 0;   //1号定时器计时完成时，标志位置零
-        
-        gpio_set_level(GPIO_Green_IO,1);
-        gpio_set_level(GPIO_Yellow_IO,0);
-        //启动软件定时器计时200ms，并将GPIO口19电平拉高，在200ms后拉低模拟脉冲
-        // esp_timer_create(&soft_timer_args_close, &soft_timer_close);
-        esp_timer_start_once(soft_timer_close, 200 * 1000);
-        gpio_set_direction(GPIO_SWITCH_CLOSE_IO,GPIO_MODE_OUTPUT);
-        gpio_set_level(GPIO_SWITCH_CLOSE_IO,1);
+            gpio_set_level(GPIO_Green_IO,1);
+            gpio_set_level(GPIO_Yellow_IO,0);
+            //启动软件定时器计时200ms，并将GPIO口19电平拉高，在200ms后拉低模拟脉冲
+            esp_timer_start_once(soft_timer, 200 * 1000);
+            gpio_set_direction(GPIO_SWITCH_CLOSE_IO,GPIO_MODE_OUTPUT);
+            gpio_set_level(GPIO_SWITCH_CLOSE_IO,1);
+        }
+        else
+        {
+            timer_pause(TIMER_GROUP_0, TIMER_0); //停止本定时器
+            flag_timer_0 = 0;//0号定时器计时完成时，标志位置零
+
+            gpio_set_level(GPIO_Yellow_IO,1);
+            gpio_set_level(GPIO_Red_IO,0);
+        }
     }
-    else
-    {
-        timer_pause(TIMER_GROUP_0, TIMER_0); //停止本定时器
-        flag_timer_0 = 0;//0号定时器计时完成时，标志位置零
-
-        gpio_set_level(GPIO_Yellow_IO,1);
-        gpio_set_level(GPIO_Red_IO,0);
+    else{//当第一次启动定时器时，进入这里
+        count++;
     }
-
     return high_task_awoken == pdTRUE;
 }
 
 
-void soft_timer_callback_open(void *arg)
+void soft_timer_callback(void *arg)
 {
-    gpio_set_level(GPIO_SWITCH_OPEN_IO,0);
     gpio_set_direction(GPIO_SWITCH_OPEN_IO,GPIO_MODE_INPUT);
-    esp_timer_stop(soft_timer_open);
-    printf("I'm Here!\n");
-}
-void soft_timer_callback_close(void *arg)
-{
-    gpio_set_level(GPIO_SWITCH_CLOSE_IO,0);
     gpio_set_direction(GPIO_SWITCH_CLOSE_IO,GPIO_MODE_INPUT);
-    esp_timer_stop(soft_timer_close);
-    printf("I'm Here!\n");
+    if(gpio_get_level(GPIO_SWITCH_OPEN_IO))
+    {
+        gpio_set_direction(GPIO_SWITCH_OPEN_IO,GPIO_MODE_OUTPUT);
+        gpio_set_level(GPIO_SWITCH_OPEN_IO,0);
+    }
+    if(gpio_get_level(GPIO_SWITCH_CLOSE_IO))
+    {
+        gpio_set_direction(GPIO_SWITCH_CLOSE_IO,GPIO_MODE_OUTPUT);
+        gpio_set_level(GPIO_SWITCH_CLOSE_IO,0);
+    }
 }
 
 //初始化定时器
-static void timer_init_test(int group, int index, bool auto_reload, int timer_interval_sec)
+static void timer_init_set(int group, int index, bool auto_reload, int timer_interval_sec)
 {
     timer_config_t timer_config = {
         .divider = TIMER_DIVIDER,
@@ -225,7 +220,7 @@ static void gpio_task(void *arg)
                 nvs_get_u32(nvs_data_storage_handle, TIMER_CHANGE, &time_change_data);
                 // nvs_get_u32(nvs_data_storage_handle, OTA_URL, &ota_url);
                 nvs_close(nvs_data_storage_handle);
-                
+
                 flag_timer_0 = 1;
                 flag_timer_1 = 1;
 
@@ -233,7 +228,7 @@ static void gpio_task(void *arg)
                 gpio_set_level(GPIO_Green_IO,0);
                 
                 //启动软件定时器计时500ms，并将GPIO口18电平拉高，在200ms后拉低模拟脉冲
-                esp_timer_start_once(soft_timer_open, 200 * 1000);
+                esp_timer_start_once(soft_timer, 200 * 1000);
                 gpio_set_direction(GPIO_SWITCH_OPEN_IO,GPIO_MODE_OUTPUT);
                 gpio_set_level(GPIO_SWITCH_OPEN_IO,1);
 
@@ -252,14 +247,14 @@ void led_switch_init(void)
     io_conf.intr_type = GPIO_INTR_DISABLE;   // disable interrupt
     io_conf.mode = GPIO_MODE_OUTPUT;         // set as output mode
     io_conf.pin_bit_mask = GPIO_LED_PIN_SEL; // bit mask of the pins that you want to set
-    io_conf.pull_down_en = 0;                // enable pull-down mode
-    io_conf.pull_up_en = 1;                  // disable pull-up mode
+    io_conf.pull_down_en = 1;                // enable pull-down mode
+    io_conf.pull_up_en = 0;                  // disable pull-up mode
     gpio_config(&io_conf);
 
     io_conf.intr_type = GPIO_INTR_DISABLE;   // disable interrupt
     io_conf.mode = GPIO_MODE_OUTPUT;         // set as output mode
     io_conf.pin_bit_mask = GPIO_SWITCH_PIN_SEL; // bit mask of the pins that you want to set
-    io_conf.pull_down_en = 0;                // enable pull-down mode
-    io_conf.pull_up_en = 1;                  // disable pull-up mode
+    io_conf.pull_down_en = 1;                // enable pull-down mode
+    io_conf.pull_up_en = 0;                  // disable pull-up mode
     gpio_config(&io_conf);
 }

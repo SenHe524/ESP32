@@ -75,7 +75,6 @@ static void ota_task(void *pvParameter)
     nvs_open(NVS_DATA, NVS_READWRITE, &nvs_data_storage_handle);
     nvs_get_str(nvs_data_storage_handle, OTA_URL, ota_url, &str_len_1);
     nvs_close(nvs_data_storage_handle);
-    puts(ota_url);
     esp_http_client_config_t config = {
         .url = ota_url,
         // .url = CONFIG_EXAMPLE_FIRMWARE_UPG_URL,

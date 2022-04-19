@@ -70,6 +70,9 @@ enum
     IDX_CHAR_H,
     IDX_CHAR_VAL_H,
 
+    IDX_CHAR_I,
+    IDX_CHAR_VAL_I,
+
     IDX_NB,
 };
 
