@@ -26,7 +26,6 @@
 // 定时器计数频率convert counter value to seconds
 #define TIMER_SCALE (TIMER_BASE_CLK / TIMER_DIVIDER)
 
-// uint16_t time_change_data = 0;
 
 //定时器相关参数结构体
 typedef struct

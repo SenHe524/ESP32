@@ -11,7 +11,7 @@
 #include "lwip/err.h"
 #include "lwip/sys.h"
 #include "wifi_connect.h"
-
+#include "gap_gatts.h"
 int wifi_flag = 1;
 /* FreeRTOS event group to signal when we are connected*/
 static EventGroupHandle_t s_wifi_event_group;
@@ -53,14 +53,11 @@ static void event_handler(void *arg, esp_event_base_t event_base,
 int wifi_init_sta(void)
 {
     s_wifi_event_group = xEventGroupCreate();//创建一个事件组
-
-    // //创建LwIP核心任务并初始化相关工作（初始化底层TCP/IP栈。）
-    // ESP_ERROR_CHECK(esp_netif_init());
-    // // 创建系统事件任务并初始化应用程序事件的回调函数
-    // ESP_ERROR_CHECK(esp_event_loop_create_default());
-    //创建默认的WIFI STA。在任何初始化错误的情况下，这个API中止
+    char wifi_name[32] = "TAC-GENRAY";
+    char wifi_pw[64] = "tacgenray2022";
+    uint32_t str_len_1 = 32;
+    uint32_t str_len_2 = 64;
     esp_netif_create_default_wifi_sta();
-
 	//定义一个名为cfg的wifi_init_config_t结构体，wifi_init_config_t的参数可由menuconfig配置
 	wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
 	//初始名为cfg的结构体
@@ -80,21 +77,24 @@ int wifi_init_sta(void)
                                                         &event_handler,
                                                         NULL,
                                                         &instance_got_ip));
+    nvs_open(NVS_DATA, NVS_READWRITE, &nvs_data_storage_handle);
+    nvs_get_str(nvs_data_storage_handle, WIFI_SSID, wifi_name, &str_len_1);
+    nvs_get_str(nvs_data_storage_handle, WIFI_PASSWORD, wifi_pw, &str_len_2);
+    nvs_close(nvs_data_storage_handle);
     //初始化wifi的配置
     wifi_config_t wifi_config = {
         .sta = {
-            .ssid = EXAMPLE_ESP_WIFI_SSID,
-            .password = EXAMPLE_ESP_WIFI_PASS,
-            /* Setting a password implies station will connect to all security modes including WEP/WPA.
-             * However these modes are deprecated and not advisable to be used. Incase your Access point
-             * doesn't support WPA2, these mode can be enabled by commenting below line */
+            .ssid = "NULL",
+            .password = "NULL",
             .threshold.authmode = WIFI_AUTH_WPA2_PSK,
-
             .pmf_cfg = {
                 .capable = true,
-                .required = false},
+                .required = false
+            },
         },
     };
+    memcpy(wifi_config.sta.ssid, wifi_name, 32);
+    memcpy(wifi_config.sta.password, wifi_pw, 64);
     //设置模式为站（station）模式
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     //初始化Station模式的Wifi配置
@@ -114,11 +114,11 @@ int wifi_init_sta(void)
      * happened. */
     if (bits & WIFI_CONNECTED_BIT){
         ESP_LOGI(TAG, "connected to ap SSID:%s password:%s",
-                 EXAMPLE_ESP_WIFI_SSID, EXAMPLE_ESP_WIFI_PASS);
+                 wifi_config.sta.ssid, wifi_config.sta.password);
     }
     else if (bits & WIFI_FAIL_BIT){
         ESP_LOGI(TAG, "Failed to connect to SSID:%s, password:%s",
-                 EXAMPLE_ESP_WIFI_SSID, EXAMPLE_ESP_WIFI_PASS);
+                 wifi_config.sta.ssid, wifi_config.sta.password);
                  wifi_flag = 0;
     }
     else{

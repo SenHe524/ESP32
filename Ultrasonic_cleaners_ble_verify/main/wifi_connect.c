@@ -55,8 +55,8 @@ int wifi_init_sta(void)
     s_wifi_event_group = xEventGroupCreate();//创建一个事件组
     char wifi_name[32] = "TAC-GENRAY";
     char wifi_pw[64] = "tacgenray2022";
-    uint32_t str_len_1 = 32;
-    uint32_t str_len_2 = 64;
+    size_t ssid_size = 0;
+    size_t password_size = 0;
     esp_netif_create_default_wifi_sta();
 	//定义一个名为cfg的wifi_init_config_t结构体，wifi_init_config_t的参数可由menuconfig配置
 	wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
@@ -78,8 +78,10 @@ int wifi_init_sta(void)
                                                         NULL,
                                                         &instance_got_ip));
     nvs_open(NVS_DATA, NVS_READWRITE, &nvs_data_storage_handle);
-    nvs_get_str(nvs_data_storage_handle, WIFI_SSID, wifi_name, &str_len_1);
-    nvs_get_str(nvs_data_storage_handle, WIFI_PASSWORD, wifi_pw, &str_len_2);
+    nvs_get_str(nvs_data_storage_handle, WIFI_SSID, NULL, &ssid_size);
+    nvs_get_str(nvs_data_storage_handle, WIFI_SSID, wifi_name, &ssid_size);
+    nvs_get_str(nvs_data_storage_handle, WIFI_PASSWORD, NULL, &password_size);
+    nvs_get_str(nvs_data_storage_handle, WIFI_PASSWORD, wifi_pw, &password_size);
     nvs_close(nvs_data_storage_handle);
     //初始化wifi的配置
     wifi_config_t wifi_config = {
@@ -93,8 +95,8 @@ int wifi_init_sta(void)
             },
         },
     };
-    memcpy(wifi_config.sta.ssid, wifi_name, 32);
-    memcpy(wifi_config.sta.password, wifi_pw, 64);
+    memcpy(wifi_config.sta.ssid, wifi_name, ssid_size);
+    memcpy(wifi_config.sta.password, wifi_pw, password_size);
     //设置模式为站（station）模式
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     //初始化Station模式的Wifi配置

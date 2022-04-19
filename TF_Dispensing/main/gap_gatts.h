@@ -17,25 +17,14 @@
 
 #include "sdkconfig.h"
 
-#define GATTS_TAG "GATTS_DEMO"
+#define GATTS_TAG "GATTS"
 
-#define GATTS_SERVICE_UUID_TEST_A   0x00FF
-#define GATTS_CHAR_UUID_TEST_A      0xFF01
-#define GATTS_DESCR_UUID_TEST_A     0x3333
-#define GATTS_NUM_HANDLE_TEST_A     4
+#define DEVICE_NAME            "TF_Dispensing"
 
-#define GATTS_SERVICE_UUID_TEST_B   0x00EE
-#define GATTS_CHAR_UUID_TEST_B      0xEE01
-#define GATTS_DESCR_UUID_TEST_B     0x2222
-#define GATTS_NUM_HANDLE_TEST_B     4
 
-#define TEST_DEVICE_NAME            "TF_Dispensing"
-#define TEST_MANUFACTURER_DATA_LEN  17
-
-#define GATTS_DEMO_CHAR_VAL_LEN_MAX 0x40
-
+#define GATTS_CHAR_VAL_LEN_MAX 500
 #define PREPARE_BUF_MAX_SIZE 1024
-
+#define CHAR_DECLARATION_SIZE       (sizeof(uint8_t))
 
 #define adv_config_flag      (1 << 0)
 #define scan_rsp_config_flag (1 << 1)
@@ -43,6 +32,51 @@
 
 #define PROFILE_NUM 1
 #define PROFILE_A_APP_ID 0
-#define PROFILE_B_APP_ID 1
+#define SVC_INST_ID 0
+
+static const char *NVS_DATA = "nvs_data";
+static const char *TIMER_CHANGE = "timer_change";
+static const char *WIFI_SSID = "wifi_ssid";
+static const char *WIFI_PASSWORD = "wifi_password";
+static const char *OTA_URL = "ota_url";
+static const char *PASSKEY = "passkey";
+nvs_handle_t nvs_data_storage_handle;  //NVS存储区句柄
+
+enum
+{
+    IDX_SVC,
+    
+    IDX_CHAR_A,
+    IDX_CHAR_VAL_A,
+    IDX_CHAR_CFG_A,
+
+    IDX_CHAR_B,
+    IDX_CHAR_VAL_B,
+
+    IDX_CHAR_C,
+    IDX_CHAR_VAL_C,
+
+    IDX_CHAR_D,
+    IDX_CHAR_VAL_D,
+
+    IDX_CHAR_E,
+    IDX_CHAR_VAL_E,
+
+    IDX_CHAR_F,
+    IDX_CHAR_VAL_F,
+
+    IDX_CHAR_G,
+    IDX_CHAR_VAL_G,
+
+    IDX_CHAR_H,
+    IDX_CHAR_VAL_H,
+
+    IDX_CHAR_I,
+    IDX_CHAR_VAL_I,
+
+    IDX_NB,
+};
+
+
 
 void ble_control(void);
