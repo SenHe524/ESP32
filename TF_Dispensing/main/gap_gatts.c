@@ -549,9 +549,7 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                 switch(param->write.handle){
                 case 42: {
                     //将清洗机时间存储在NVS分区中
-                    if(((*param->write.value/100) < (*param->write.value%100)) 
-                        && ((*param->write.value/100) > 0) && ((*param->write.value%100) > 0)
-                        && (*param->write.value < 9999))
+                    if(((*param->write.value) > 0) && ((*param->write.value) < 100))
                     {
                         time_data = *param->write.value;
                         nvs_open(NVS_DATA, NVS_READWRITE, &nvs_data_storage_handle);

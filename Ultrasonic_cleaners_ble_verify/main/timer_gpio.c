@@ -218,7 +218,6 @@ static void gpio_task(void *arg)
                 //从NVS中读取定时器时间配置
                 nvs_open(NVS_DATA, NVS_READWRITE, &nvs_data_storage_handle);
                 nvs_get_u32(nvs_data_storage_handle, TIMER_CHANGE, &time_change_data);
-                // nvs_get_u32(nvs_data_storage_handle, OTA_URL, &ota_url);
                 nvs_close(nvs_data_storage_handle);
 
                 flag_timer_0 = 1;

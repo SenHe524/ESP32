@@ -7,11 +7,12 @@
 #include "timer_gpio.h"
 #include "esp_task_wdt.h"
 
-
+#include "gap_gatts.h"
+#include "unistd.h"
 static xQueueHandle gpio_Queue_t;  // Gpio队列句柄
 
-static void timer_init_test(int group, int index, bool auto_reload, int timer_interval_sec); //定时器参数初始化与定时器注册函数
-static bool IRAM_ATTR timer_isr_callback_test(void *args);                                   //定时器的ISR回调函数
+static void timer_init_set(int group, int index, bool auto_reload, int timer_interval_sec); //定时器参数初始化与定时器注册函数
+static bool IRAM_ATTR timer_isr_callback(void *args);                                   //定时器的ISR回调函数
 
 static void IRAM_ATTR gpio_isr_handler(void *arg); // Gpio的ISR回调函数
 static void gpio_task(void *arg);  
@@ -19,26 +20,26 @@ static void Buzzer_control_task(void *arg);
 
 static int flag_timer_0 = 0; //定时器0的标志位
 static int flag_timer_1 = 0; //定时器1的标志位
-static int flag_T_cnt = 0; //定时器计数
+static int cnt_flag = 0; //定时器计数
 static int flag_move = 0;   //物品放置标志位
-static int flag_yellow = 0;
+// static int yellow_flag = 0;
 
 uint32_t io_level_last = 1;
 uint32_t io_level_now = 0;
 
-uint16_t time_change_flag = 2;
+uint16_t time_change_data = 2;
 void gpio_intr_init(void);
 void led_init(void);
 void timer_gpio_init(void)
 {
     gpio_intr_init();
     led_init();
-    timer_init_test(TIMER_GROUP_0, TIMER_0, false, 5);
-    timer_init_test(TIMER_GROUP_0, TIMER_1, false, 5);
+    timer_init_set(TIMER_GROUP_0, TIMER_0, false, 5);
+    timer_init_set(TIMER_GROUP_0, TIMER_1, false, 5);
     gpio_set_level(GPIO_Green_IO,1);
 }
 
-static bool IRAM_ATTR timer_isr_callback_test(void *args)
+static bool IRAM_ATTR timer_isr_callback(void *args)
 {
     BaseType_t high_task_awoken = pdFALSE;
     timer_test_info_t *timer_info_callback = (timer_test_info_t *)args;
@@ -56,19 +57,30 @@ static bool IRAM_ATTR timer_isr_callback_test(void *args)
     }
     if(!timer_info_callback->timer_index)
     {    
-        flag_T_cnt++;
-        timer_start(TIMER_GROUP_0, TIMER_0);
-        if(flag_T_cnt>=time_change_flag)
+        cnt_flag++;
+        if(cnt_flag>=time_change_data)
         {
             timer_pause(TIMER_GROUP_0, TIMER_0); //停止0号定时器
-            timer_start(TIMER_GROUP_0, TIMER_1); //启动1号定时器
             flag_timer_0 = 0;//0号定时器计时完成时，标志位置零
-            flag_timer_1 = 1;//1号定时器开启，标志位置1
+            if(io_level_last)
+            {
+                gpio_set_level(GPIO_Red_IO,0);
+                gpio_set_level(GPIO_Green_IO,1);
+                flag_move = 0;
+            }
+            else
+            {
+                timer_start(TIMER_GROUP_0, TIMER_1); //启动1号定时器
+                flag_timer_1 = 1;//1号定时器开启，标志位置1
 
-            flag_yellow = 1;
-            gpio_set_level(GPIO_Yellow_IO,1);
-            gpio_set_level(GPIO_Red_IO,0);
-            flag_T_cnt = 0;
+                gpio_set_level(GPIO_Yellow_IO,1);
+                gpio_set_level(GPIO_Red_IO,0);
+            }
+            cnt_flag = 0;
+        }
+        else
+        {
+            timer_start(TIMER_GROUP_0, TIMER_0);
         }
     }
     else
@@ -79,7 +91,7 @@ static bool IRAM_ATTR timer_isr_callback_test(void *args)
     return high_task_awoken == pdTRUE;
 }
 
-static void timer_init_test(int group, int index, bool auto_reload, int timer_interval_sec)
+static void timer_init_set(int group, int index, bool auto_reload, int timer_interval_sec)
 {
     timer_config_t timer_config = {
         .divider = TIMER_DIVIDER,
@@ -103,8 +115,7 @@ static void timer_init_test(int group, int index, bool auto_reload, int timer_in
     timer_info->auto_reload = auto_reload;
 
     //注册ISR中断
-    timer_isr_callback_add(group, index, timer_isr_callback_test, timer_info, 0);
-    // timer_start(group,index);
+    timer_isr_callback_add(group, index, timer_isr_callback, timer_info, 0);
 }
 
 static void IRAM_ATTR gpio_isr_handler(void *arg)
@@ -120,15 +131,15 @@ void gpio_intr_init(void)
     gpio_config_t io_conf = {};
     io_conf.intr_type = GPIO_INTR_DISABLE;   // disable interrupt
     io_conf.mode = GPIO_MODE_INPUT;         // set as output mode
-    io_conf.pin_bit_mask = GPIO_Buzzer_PIN_SEL; // bit mask of the pins that you want to set
-    io_conf.pull_down_en = 0;                // disable pull-down mode
+    io_conf.pin_bit_mask = GPIO_BUZZER_PIN_SEL; // bit mask of the pins that you want to set
+    io_conf.pull_down_en = 1;                // disable pull-down mode
     io_conf.pull_up_en = 0;                  // disable pull-up mode
     gpio_config(&io_conf);
 
     io_conf.intr_type = GPIO_INTR_ANYEDGE;     // interrupt of rising edge
     io_conf.pin_bit_mask = GPIO_SENSOR_PIN_SEL; // bit mask of the pins, use GPIO4/5 here
     io_conf.mode = GPIO_MODE_INPUT;            // set as input mode
-    io_conf.pull_up_en = 0 ;                    // enable pull-up mode
+    io_conf.pull_up_en = 1;                    // enable pull-up mode
     io_conf.pull_down_en = 0;                  // disable pull-down mode
     gpio_config(&io_conf);
 
@@ -156,10 +167,16 @@ static void gpio_task(void *arg)
             io_level_now = gpio_get_level(io_num);
             printf("GPIO[%d] intr, val: %d\n", io_num, io_level_now);
 
-            if((!io_level_now) && io_level_last && (!flag_timer_0) && (!flag_yellow))
+            if((!io_level_now) && io_level_last && (!flag_timer_0))// && (!yellow_flag)
             {
                 flag_timer_0 = 1;
                 flag_move = 1;
+
+                //从NVS中读取定时器时间配置
+                nvs_open(NVS_DATA, NVS_READWRITE, &nvs_data_storage_handle);
+                nvs_get_u32(nvs_data_storage_handle, TIMER_CHANGE, &time_change_data);
+                nvs_close(nvs_data_storage_handle);
+
                 gpio_set_level(GPIO_Yellow_IO,0);
                 gpio_set_level(GPIO_Red_IO,1);
                 gpio_set_level(GPIO_Green_IO,0);
@@ -167,7 +184,6 @@ static void gpio_task(void *arg)
             }
             else if(io_level_now && (!io_level_last) && (!flag_timer_0))
             {
-                flag_yellow = 0;
                 gpio_set_level(GPIO_Yellow_IO,0);
                 gpio_set_level(GPIO_Green_IO,1);
                 flag_move = 0;
@@ -181,14 +197,15 @@ static void Buzzer_control_task(void *arg)
 {
     for (;;)
     {
-        gpio_set_direction(GPIO_Buzzer_IO,GPIO_MODE_INPUT);
+        gpio_set_direction(GPIO_Buzzer_IO,GPIO_MODE_OUTPUT);
         while((!flag_timer_0) && flag_timer_1 && flag_move)
         {
             gpio_set_direction(GPIO_Buzzer_IO,GPIO_MODE_OUTPUT);
             gpio_set_level(GPIO_Buzzer_IO,1);
-            vTaskDelay(1 / portTICK_RATE_MS);
+            usleep(500);
             gpio_set_level(GPIO_Buzzer_IO,0);
-            vTaskDelay(1 / portTICK_RATE_MS);
+            usleep(500);
+            // vTaskDelay(1 / portTICK_RATE_MS);
         }
         gpio_set_direction(GPIO_Buzzer_IO,GPIO_MODE_INPUT);
         vTaskDelay(100 / portTICK_RATE_MS);

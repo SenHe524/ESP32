@@ -12,6 +12,9 @@
 #define GPIO_wifi_IO 27 // wifi指示灯io口
 #define GPIO_LED_PIN_SEL ((1ULL << GPIO_Green_IO) | (1ULL << GPIO_Red_IO) | (1ULL << GPIO_Yellow_IO) | (1ULL << GPIO_wifi_IO))
 
+#define GPIO_Buzzer_IO 26 // 蜂鸣器io口
+#define GPIO_BUZZER_PIN_SEL (1ULL << GPIO_Buzzer_IO)
+
 
 #define GPIO_SWITCH_OPEN_IO 18 //开Gpio口
 #define GPIO_SWITCH_CLOSE_IO 19 //关Gpio口
