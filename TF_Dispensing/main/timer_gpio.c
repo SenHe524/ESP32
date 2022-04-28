@@ -130,13 +130,13 @@ void gpio_intr_init(void)
     // zero-initialize the config structure.
     gpio_config_t io_conf = {};
     io_conf.intr_type = GPIO_INTR_DISABLE;   // disable interrupt
-    io_conf.mode = GPIO_MODE_INPUT;         // set as output mode
+    io_conf.mode = GPIO_MODE_OUTPUT;         // set as output mode
     io_conf.pin_bit_mask = GPIO_BUZZER_PIN_SEL; // bit mask of the pins that you want to set
-    io_conf.pull_down_en = 1;                // disable pull-down mode
-    io_conf.pull_up_en = 0;                  // disable pull-up mode
+    io_conf.pull_down_en = 0;                // disable pull-down mode
+    io_conf.pull_up_en = 1;                  // disable pull-up mode
     gpio_config(&io_conf);
 
-    io_conf.intr_type = GPIO_INTR_ANYEDGE;     // interrupt of rising edge
+    io_conf.intr_type = GPIO_INTR_ANYEDGE;     // interrupt of rising edge and falling edge
     io_conf.pin_bit_mask = GPIO_SENSOR_PIN_SEL; // bit mask of the pins, use GPIO4/5 here
     io_conf.mode = GPIO_MODE_INPUT;            // set as input mode
     io_conf.pull_up_en = 1;                    // enable pull-up mode
@@ -197,17 +197,16 @@ static void Buzzer_control_task(void *arg)
 {
     for (;;)
     {
-        gpio_set_direction(GPIO_Buzzer_IO,GPIO_MODE_OUTPUT);
+        gpio_set_direction(GPIO_Buzzer_IO, GPIO_MODE_DEF_INPUT);
         while((!flag_timer_0) && flag_timer_1 && flag_move)
         {
-            gpio_set_direction(GPIO_Buzzer_IO,GPIO_MODE_OUTPUT);
-            gpio_set_level(GPIO_Buzzer_IO,1);
-            usleep(500);
+            gpio_set_direction(GPIO_Buzzer_IO, GPIO_MODE_DEF_OUTPUT);
             gpio_set_level(GPIO_Buzzer_IO,0);
-            usleep(500);
-            // vTaskDelay(1 / portTICK_RATE_MS);
+            usleep(100);
+            gpio_set_level(GPIO_Buzzer_IO,1);
+            usleep(100);
+
         }
-        gpio_set_direction(GPIO_Buzzer_IO,GPIO_MODE_INPUT);
         vTaskDelay(100 / portTICK_RATE_MS);
     }
 }

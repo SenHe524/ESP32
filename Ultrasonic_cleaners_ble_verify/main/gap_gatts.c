@@ -578,7 +578,7 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                     nvs_close(nvs_data_storage_handle);
                     break;
                 }
-                case 53: {
+                case 53: {//将OTA服务器地址存储在NVS分区中
                     memcpy(ota_url, param->write.value, param->write.len);
                     nvs_open(NVS_DATA, NVS_READWRITE, &nvs_data_storage_handle);
                     nvs_set_str(nvs_data_storage_handle, OTA_URL, ota_url);

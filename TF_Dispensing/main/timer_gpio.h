@@ -9,8 +9,8 @@
 #define GPIO_Green_IO 14 // 绿指示灯io口
 #define GPIO_Red_IO 12 // 红色指示灯io口
 #define GPIO_Yellow_IO 13 // 黄色指示灯io口
-#define GPIO_wifi_IO 27 // wifi指示灯io口
-#define GPIO_LED_PIN_SEL ((1ULL << GPIO_Green_IO) | (1ULL << GPIO_Red_IO) | (1ULL << GPIO_Yellow_IO) | (1ULL << GPIO_wifi_IO))
+// #define GPIO_wifi_IO 27 // wifi指示灯io口
+#define GPIO_LED_PIN_SEL ((1ULL << GPIO_Green_IO) | (1ULL << GPIO_Red_IO) | (1ULL << GPIO_Yellow_IO) )//| (1ULL << GPIO_wifi_IO)
 
 #define GPIO_Buzzer_IO 26 // 蜂鸣器io口
 #define GPIO_BUZZER_PIN_SEL (1ULL << GPIO_Buzzer_IO)
