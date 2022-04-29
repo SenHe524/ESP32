@@ -22,9 +22,12 @@
 #include <sys/socket.h>
 #include "esp_wifi.h"
 
-static const char *TAG = "simple_ota_example";
 
-#define HASH_LEN 32
+
+static const char *TAG = "simple_ota_example";
+extern const uint8_t server_cert_pem_start[] asm("_binary_ca_cert_pem_start");
+extern const uint8_t server_cert_pem_end[] asm("_binary_ca_cert_pem_end");
+
 #define OTA_URL_SIZE 256
 
 esp_err_t _http_event_handler(esp_http_client_event_t *evt)
@@ -60,9 +63,12 @@ void simple_ota_example_task(void *pvParameter)
     ESP_LOGI(TAG, "Starting OTA example");
     esp_http_client_config_t config = {
         .url = CONFIG_EXAMPLE_FIRMWARE_UPGRADE_URL,
+        .cert_pem = (char *)server_cert_pem_start,
         .event_handler = _http_event_handler,
         .keep_alive_enable = true,
     };
+
+    config.skip_cert_common_name_check = true;
 
     esp_err_t ret = esp_https_ota(&config);
     if (ret == ESP_OK) {
@@ -74,34 +80,6 @@ void simple_ota_example_task(void *pvParameter)
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }
-
-static void print_sha256(const uint8_t *image_hash, const char *label)
-{
-    char hash_print[HASH_LEN * 2 + 1];
-    hash_print[HASH_LEN * 2] = 0;
-    for (int i = 0; i < HASH_LEN; ++i) {
-        sprintf(&hash_print[i * 2], "%02x", image_hash[i]);
-    }
-    ESP_LOGI(TAG, "%s %s", label, hash_print);
-}
-
-static void get_sha256_of_partitions(void)
-{
-    uint8_t sha_256[HASH_LEN] = { 0 };
-    esp_partition_t partition;
-
-    // get sha256 digest for bootloader
-    partition.address   = ESP_BOOTLOADER_OFFSET;
-    partition.size      = ESP_PARTITION_TABLE_OFFSET;
-    partition.type      = ESP_PARTITION_TYPE_APP;
-    esp_partition_get_sha256(&partition, sha_256);
-    print_sha256(sha_256, "SHA-256 for bootloader: ");
-
-    // get sha256 digest for running partition
-    esp_partition_get_sha256(esp_ota_get_running_partition(), sha_256);
-    print_sha256(sha_256, "SHA-256 for current firmware: ");
-}
-
 void app_main(void)
 {
     // Initialize NVS.
@@ -112,22 +90,11 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(err);
 
-    get_sha256_of_partitions();
-
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-    /* This helper function configures Wi-Fi or Ethernet, as selected in menuconfig.
-     * Read "Establishing Wi-Fi or Ethernet Connection" section in
-     * examples/protocols/README.md for more information about this function.
-     */
     ESP_ERROR_CHECK(example_connect());
-
-    /* Ensure to disable any WiFi power save mode, this allows best throughput
-     * and hence timings for overall OTA operation.
-     */
     esp_wifi_set_ps(WIFI_PS_NONE);
-
 
     xTaskCreate(&simple_ota_example_task, "ota_example_task", 8192, NULL, 5, NULL);
 }

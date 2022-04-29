@@ -76,8 +76,8 @@ static void ota_task(void *pvParameter)
     nvs_get_str(nvs_data_storage_handle, OTA_URL, ota_url, &str_len_1);
     nvs_close(nvs_data_storage_handle);
     esp_http_client_config_t config = {
-        .url = ota_url,
-        // .url = CONFIG_EXAMPLE_FIRMWARE_UPG_URL,
+        // .url = ota_url,
+        .url = CONFIG_EXAMPLE_FIRMWARE_UPG_URL,
         .timeout_ms = CONFIG_EXAMPLE_OTA_RECV_TIMEOUT,
         .keep_alive_enable = true,
     };
@@ -108,6 +108,7 @@ static void ota_task(void *pvParameter)
         ESP_LOGE(TAG, "Failed to initialise HTTP connection");
         task_fatal_error();
     }
+    esp_http_client_set_url(client, ota_url);
     //连http服务器
     err = esp_http_client_open(client, 0);
     if (err != ESP_OK)
