@@ -24,7 +24,7 @@ static char WIFI_SSID_CHANGE[32];//WiFi名字
 static char WIFI_PASSWORD_CHANGE[64];//WiFi密码
 static char ota_url[64] = {"http://172.18.0.70:10031/motoc/gImage/UC1000.bin"};//OTA服务器
 uint16_t device_serial_number = 1001;//设备SN
-uint16_t firmware_Version = 1010;//固件版本
+uint16_t firmware_Version = 1009;//固件版本
 static int bond_flag = 0;//绑定标志位
 
 ///Declare the static function

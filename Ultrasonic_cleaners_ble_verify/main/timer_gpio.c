@@ -102,8 +102,8 @@ static bool IRAM_ATTR timer_isr_callback(void *args)
 
             gpio_set_level(GPIO_Green_IO,1);
             gpio_set_level(GPIO_Yellow_IO,0);
-            //启动软件定时器计时200ms，并将GPIO口19电平拉高，在200ms后拉低模拟脉冲
-            esp_timer_start_once(soft_timer, 200 * 1000);
+            //启动软件定时器计时200ms，并将GPIO口19电平拉高，在300ms后拉低模拟脉冲
+            esp_timer_start_once(soft_timer, 300 * 1000);
             gpio_set_direction(GPIO_SWITCH_CLOSE_IO,GPIO_MODE_OUTPUT);
             gpio_set_level(GPIO_SWITCH_CLOSE_IO,1);
         }
