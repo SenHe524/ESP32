@@ -7,20 +7,19 @@
 #include "driver/gpio.h"
 
 
-#include "DS18B20.h"
+#include "DHT11.h"
 
 
 void app_main(void)
 {
+    //上电延时2s等待DHT11做准备
+    vTaskDelay(2000 / portTICK_RATE_MS);
     gpio_init();
+
     while (1)
     {
-        temperature_convert();
-
-        printf("当前温度为：%lf\n",temperature_read(0xBE));
-
+        data_read();
         vTaskDelay(500 / portTICK_RATE_MS);
-
     }
     
     

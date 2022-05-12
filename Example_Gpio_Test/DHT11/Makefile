@@ -3,6 +3,6 @@
 # project subdirectory.
 #
 
-PROJECT_NAME := DS18B20
+PROJECT_NAME := DHT11
 
 include $(IDF_PATH)/make/project.mk
