@@ -11,8 +11,11 @@
 #include "sys/unistd.h"
 
 /***************************L3G4200D**********************************/
-int Init_L3G4200D(void);
+int Init_L3G4200D(float *BUF_MARK);
 
+void L3G4200D_READ(float *BUF_L3G4200D);
+
+int L3G4200D_READ_AVERAGE(float *BUF_L3G4200D, float *BUF_MARK, int times);
 
 
 /***************************HMC5883L**********************************/

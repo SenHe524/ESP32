@@ -10,18 +10,83 @@
 
 #include "I2C.h"
 #include "Register.h"
-
-#define OSS 0 //BMP085 使用
+#include "Init_Read.h"
+#define N 10     //L3G4200D
+#define OSS 0   //BMP085 使用
 
 /***************************L3G4200D**********************************/
-int Init_L3G4200D(void)
+int Init_L3G4200D(float *BUF_MARK)
 {
+    float BUF_MARK_TEMP[3] = {0, 0, 0};
     if(Single_Read(L3G4200_Addr, L3G4200_DEVID) != 0xD3)        return 0;
-    if(!Single_Write(L3G4200_Addr,L3G4200_CTRL_REG1,0x58))      return 0;
+    if(!Single_Write(L3G4200_Addr,L3G4200_CTRL_REG1,0x8F))      return 0;
     if(!Single_Write(L3G4200_Addr,L3G4200_CTRL_REG2,0x20))      return 0;
-    if(!Single_Write(L3G4200_Addr,L3G4200_CTRL_REG3,0x00))      return 0;
-    if(!Single_Write(L3G4200_Addr,L3G4200_CTRL_REG4,0x58))      return 0;
-    if(!Single_Write(L3G4200_Addr,L3G4200_CTRL_REG5,0x58))      return 0;
+    if(!Single_Write(L3G4200_Addr,L3G4200_CTRL_REG3,0x08))      return 0;
+    if(!Single_Write(L3G4200_Addr,L3G4200_CTRL_REG4,0x00))      return 0;
+    if(!Single_Write(L3G4200_Addr,L3G4200_CTRL_REG5,0x80))      return 0;
+    if(!Single_Write(L3G4200_Addr,L3G4200_REFERENCE,0x00))      return 0;
+    if(!L3G4200D_READ_AVERAGE(BUF_MARK, BUF_MARK_TEMP, 5))                      return 0;
+    return 1;
+}
+void L3G4200D_READ(float *BUF_L3G4200D)
+{
+    uint8_t BUF[6];
+    int T_X, T_Y, T_Z;
+    BUF[0] = Single_Read(L3G4200_Addr, L3G4200_OUT_X_L);
+    BUF[1] = Single_Read(L3G4200_Addr, L3G4200_OUT_X_H);
+    T_X = (BUF[1] << 8) | BUF[0];
+    BUF[2] = Single_Read(L3G4200_Addr, L3G4200_OUT_Y_L);
+    BUF[3] = Single_Read(L3G4200_Addr, L3G4200_OUT_Y_H);
+    T_Y = (BUF[3] << 8) | BUF[2];
+    BUF[4] = Single_Read(L3G4200_Addr, L3G4200_OUT_Z_L);
+    BUF[5] = Single_Read(L3G4200_Addr, L3G4200_OUT_Z_H);
+    T_Z = (BUF[5] << 8) | BUF[4];
+
+    if(T_X > 0x7FFF)  T_X -= 0xFFFF;
+    if(T_Y > 0x7FFF)  T_Y -= 0xFFFF;
+    if(T_Z > 0x7FFF)  T_Z -= 0xFFFF;
+
+    // printf("X = %x, Y = %x, Z = %x\n",T_X,T_Y,T_Z);
+    //FS = 250dps   * 0.00875
+    //FS = 500dps   * 0.0175
+    //FS = 2000dps  * 0.07
+    BUF_L3G4200D[0] = (float)T_X * 0.00875;// * 0.07
+    BUF_L3G4200D[1] = (float)T_Y * 0.00875;
+    BUF_L3G4200D[2] = (float)T_Z * 0.00875;
+}
+int L3G4200D_READ_AVERAGE(float *BUF_L3G4200D, float *BUF_MARK, int times)
+{
+    // float BUF_TEMP[3] = {0, 0, 0};
+    float BUF[3] = {0, 0, 0};
+    for(int i = 0; i < times; i++)
+    {
+        float BUF_TEMP[3] = {0, 0, 0};
+        for(int j = 0; j < N; j++)
+        {
+            if((Single_Read(L3G4200_Addr, L3G4200_STATUS) & 0x08) == 0x08)
+            {//检查L3G4200D是否有数据
+                L3G4200D_READ(BUF_L3G4200D);
+            }
+            else{
+                printf("I'm Here!!!!\n");
+                return 0;
+            }
+            BUF_TEMP[0] += BUF_L3G4200D[0];
+            BUF_TEMP[1] += BUF_L3G4200D[1];
+            BUF_TEMP[2] += BUF_L3G4200D[2];
+            ets_delay_us(3 * 1000);
+        }
+        BUF_TEMP[0] /= N;
+        BUF_TEMP[1] /= N;
+        BUF_TEMP[2] /= N;
+        // printf("%f  %f  %f\n",BUF_TEMP[0],BUF_TEMP[1],BUF_TEMP[2]);
+        BUF[0] += BUF_TEMP[0];
+        BUF[1] += BUF_TEMP[1];
+        BUF[2] += BUF_TEMP[2];
+    }
+    BUF_L3G4200D[0] = BUF[0] / times - BUF_MARK[0];
+    BUF_L3G4200D[1] = BUF[1] / times - BUF_MARK[1];
+    BUF_L3G4200D[2] = BUF[2] / times - BUF_MARK[2];
     return 1;
 }
 
@@ -166,20 +231,16 @@ int Init_ADXL345(void)
     if(Single_Read(ADXL345_Addr, ADXL345_DEVID) != 0xE5)    return 0;
 
     //以下配置ADXL345的寄存器，见PDF22页
+    //关闭中断
+    if(!Single_Write(ADXL345_Addr,ADXL345_INT_ENABLE, 0x80))    return 0; 
     //全分辨率模式 测量范围,正负16g，13位模式，详见中文手册25-26页
-    if(!Single_Write(ADXL345_Addr,ADXL345_DATA_FORMAT, 0x2B))    return 0;
-    //设置功率模式：正常功率，数据速率设定为100hz  参考pdf24 13页
-    if(!Single_Write(ADXL345_Addr,ADXL345_BW_RATE, 0x0A))    return 0;   
+    if(!Single_Write(ADXL345_Addr,ADXL345_DATA_FORMAT, 0x08))    return 0;
+    //设置功率模式：正常功率，数据速率设定为400hz  参考pdf24 13页
+    if(!Single_Write(ADXL345_Addr,ADXL345_BW_RATE, 0x0C))    return 0;
+    //选择电源模式为测量模式   参考pdf24页
+    if(!Single_Write(ADXL345_Addr,ADXL345_POWER_CTL, 0x08))    return 0;
     //使能 DATA_READY 中断
     if(!Single_Write(ADXL345_Addr,ADXL345_INT_ENABLE, 0x80))    return 0; 
-    // //X 偏移量 根据测试传感器的状态写入pdf29页
-    // if(!Single_Write(ADXL345_Addr,ADXL345_OFSX, 0x00))    return 0; 
-    // //Y 偏移量 根据测试传感器的状态写入pdf29页
-    // if(!Single_Write(ADXL345_Addr,ADXL345_OFSY, 0x00))    return 0; 
-    // //Z 偏移量 根据测试传感器的状态写入pdf29页
-    // if(!Single_Write(ADXL345_Addr,ADXL345_OFSZ, 0x00))    return 0;
-    // //选择电源模式为测量模式   参考pdf24页
-    if(!Single_Write(ADXL345_Addr,ADXL345_POWER_CTL, 0x08))    return 0; 
     return 1;
 }
 
@@ -199,16 +260,20 @@ void ADXL345_Read(int *X, int *Y, int *Z)
     *X = (BUF_ADXL345[1] << 8) + BUF_ADXL345[0]; //合成数据
     *Y = (BUF_ADXL345[3] << 8) + BUF_ADXL345[2]; //合成数据
     *Z = (BUF_ADXL345[5] << 8) + BUF_ADXL345[4]; //合成数据
+    if(*X > 0x7FFF)  *X -= 0xFFFF;
+    if(*Y > 0x7FFF)  *Y -= 0xFFFF;
+    if(*Z > 0x7FFF)  *Z -= 0xFFFF;
+    
 }
 
 void ADXL345_Read_Average(int *X, int *Y, int *Z, int times)
 {
     int temp_x_1, temp_y_1, temp_z_1;
-    int temp_x_2 = 0, temp_y_2 = 0, temp_z_2 = 0;
     *X = 0;*Y = 0;*Z = 0;
     if(times > 0){
         for(int i = 0; i < times; i++)
         {
+            int temp_x_2 = 0, temp_y_2 = 0, temp_z_2 = 0;
             for(int j = 0; j < 10; j++)
             {
                 ADXL345_Read(&temp_x_1, &temp_y_1, &temp_z_1);
@@ -227,10 +292,10 @@ void ADXL345_Read_Average(int *X, int *Y, int *Z, int times)
         *X /= times;
         *Y /= times;
         *Z /= times;
+        printf("%d, %d, %d----------\n",*X,*Y,*Z);
     }
 }
 
-//******************ADXL345计算倾斜角度************
 float ADXL345_Angle(float A_X, float A_Y, float A_Z, int i)
 {
     float temp;
@@ -238,23 +303,19 @@ float ADXL345_Angle(float A_X, float A_Y, float A_Z, int i)
     switch (i)
     {
     case 0: //与自然Z轴的角度
-        // temp = A_Z / sqrt((A_X * A_X + A_Y * A_Y));
         temp = sqrt((A_X * A_X + A_Y * A_Y)) / A_Z;
         res = atan(temp); //反正切
         break;
     case 1: //与自然X轴的角度
         temp = A_X / sqrt((A_Y * A_Y + A_Z * A_Z));
-        // temp = sqrt((A_Y * A_Y + A_Z * A_Z)) / A_X;
-
         res = atan(temp);
         break;
     case 2: //与自然Y轴的角度
         temp = A_Y / sqrt((A_X * A_X + A_Z * A_Z));
-        // temp = sqrt((A_X * A_X + A_Z * A_Z)) /  A_Y;
         res = atan(temp);
         break;
     }
-    return res * 180 / 3.14;
+    return res * 180 / 3.14159265;
 }
 
 int ADXL345_AUTO_Adjust(void)
@@ -283,10 +344,11 @@ int ADXL345_AUTO_Adjust(void)
     if(!Single_Write(ADXL345_Addr,ADXL345_OFSZ, 0x00))    return 0;
     ets_delay_us(12*1000);
 
-    ADXL345_Read_Average(&temp_x, &temp_y, &temp_z, 100);
+    ADXL345_Read_Average(&temp_x, &temp_y, &temp_z, 10);
     offx = -temp_x / 4;
     offy = -temp_y / 4;
     offz = -(temp_z - 256) / 4;
+    printf("%d, %d, %d-----------------------\n",offx,offy,offz);
     //X 偏移量 根据测试传感器的状态写入pdf29页
     if(!Single_Write(ADXL345_Addr,ADXL345_OFSX, offx))    return 0; 
     //Y 偏移量 根据测试传感器的状态写入pdf29页

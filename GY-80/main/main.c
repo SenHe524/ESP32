@@ -11,29 +11,206 @@
 #include "I2C.h"
 #include "Init_Read.h"
 #include "Register.h"
-/***************************L3G4200D**********************************/
+/******************************变量定义*********************************/
+typedef struct
+{
+    //L3G4200D
+    int Init_K3G4200D; //初始化标志位
+    float BUF_L3G4200D[3];//L3G4200D
+    float BUF_MARK[3];
+    //HMC5883L
+    uint8_t BUF_HMC5883L[6];
+    float Angle;
+    // //BMP0885
+    short AC_123[3];
+    unsigned short AC_456[3];
+    short B1_MD[5];
+    long temperature, pressure;
+    //ADXL345
+    int A_X, A_Y, A_Z;
+    float Angle_X, Angle_Y, Angle_Z;
+    float Xg, Yg, Zg;
+    
+}  GY_80_DATA_t;
+
+/*************************任务句柄及回调函数声明**************************/
+// static TaskHandle_t Task_L3G4200D_t = NULL;
+// static TaskHandle_t Task_HMC5883L_t = NULL;
+// static TaskHandle_t Task_BMP085_t = NULL;
+// static TaskHandle_t Task_ADXL345_t = NULL;
+static TaskHandle_t Task_GY_80_t = NULL;
+// void Task_L3G4200D(void *parameter);
+// void Task_HMC5883L(void *parameter);
+// void Task_BMP085(void *parameter);
+// void Task_ADXL345(void *parameter);
+void Init_GY_80(GY_80_DATA_t *parameter);
+void Task_GY_80(GY_80_DATA_t *parameter);
+
+/******************************主函数*********************************/
 void app_main(void)
 {
-    if(!Init_L3G4200D()){
-        printf("L3G4200D 初始化失败!\n");
+    GY_80_DATA_t Data = {
+        .Init_K3G4200D = 0,
+        .BUF_MARK[0] = 0,
+        .BUF_MARK[1] = 0,
+        .BUF_MARK[2] = 0,
+    };
+    // xTaskCreate((TaskFunction_t)Task_L3G4200D,"Task_L3G4200D",2048,NULL,5,&Task_L3G4200D_t);
+    // xTaskCreate((TaskFunction_t)Task_HMC5883L,"Task_HMC5883L",2048,NULL,5,&Task_HMC5883L_t);
+    // xTaskCreate((TaskFunction_t)Task_BMP085,"Task_BMP085",2048,NULL,5,&Task_BMP085_t);
+    // xTaskCreate((TaskFunction_t)Task_ADXL345,"Task_ADXL345",2048,&Data,5,&Task_ADXL345_t);
+    xTaskCreate((TaskFunction_t)Task_GY_80,"Task_GY_80",8192,&Data,5,&Task_GY_80_t);
+}
+/***************************Init GY_80*********************************/
+
+void Init_GY_80(GY_80_DATA_t *parameter)
+{
+    GY_80_DATA_t *Data = parameter;
+    //初始化ADXL345
+    while(!Init_ADXL345());
+    while(!ADXL345_AUTO_Adjust());
+    while(!Init_ADXL345());
+    //初始化L3G4200D
+    while(!Data->Init_K3G4200D){
+        if(!Init_L3G4200D(Data->BUF_MARK)){
+                printf("L3G4200D 初始化失败!\n");
+                Data->Init_K3G4200D = 0;
+            }
+            else
+            {
+                if((Data->BUF_MARK[0] > 1) || (Data->BUF_MARK[1] > 1) || (Data->BUF_MARK[2] > 1)){
+                    printf("L3G4200D 初始化失败!\n");
+                    Data->Init_K3G4200D = 0;
+                }
+                else{
+                    Data->Init_K3G4200D = 1;
+                }
+                // printf("%f,%f,%f\t1000\n",BUF_MARK[0],BUF_MARK[1],BUF_MARK[2]);
+            }
     }
-    while(1)
+    //初始化HMC5883L
+    while(!Init_HMC5883L()){
+        printf("HMC5883L 初始化失败!\n");
+    }
+    //初始化BMP085
+    Init_BMP085(Data->AC_123, Data->AC_456, Data->B1_MD);
+}
+
+/***************************GY_80*********************************/
+void Task_GY_80(GY_80_DATA_t *parameter)
+{
+    GY_80_DATA_t *Data = parameter;
+    Init_GY_80(Data);
+    while (1)
     {
-        // if(HMC5883L_READ(BUF_HMC5883L, &Angle))
-        // {
-        //     printf("当前磁场角度为：%f\n",Angle);
-        // }
-        // else{
-        //     printf("测量失败！\n");
-        // }
-        vTaskDelay(1000 / portTICK_RATE_MS);
+        /*****************读取加速度*******************/
+        ADXL345_Read_Average(&Data->A_X, &Data->A_Y, &Data->A_Z, 10);
+        Data->Xg = (((float)Data->A_X * 3.9) / 1000) * 9.8;
+        Data->Yg = (((float)Data->A_Y * 3.9) / 1000) * 9.8;
+        Data->Zg = (((float)Data->A_Z * 3.9) / 1000) * 9.8;
+        Data->Angle_X = ADXL345_Angle((float)Data->A_X * 3.9, (float)Data->A_Y * 3.9, (float)Data->A_Z * 3.9, 1);
+        Data->Angle_Y = ADXL345_Angle((float)Data->A_X * 3.9, (float)Data->A_Y * 3.9, (float)Data->A_Z * 3.9, 2);
+        Data->Angle_Z = ADXL345_Angle((float)Data->A_X * 3.9, (float)Data->A_Y * 3.9, (float)Data->A_Z * 3.9, 0);
+        printf("三轴加速度为：Xg = %lf, Yg = %lf, Zg = %lf\n", Data->Xg, Data->Yg, Data->Zg);
+        printf("偏角为：Angle_X = %lf, Angle_Y = %lf, Angle_Z = %lf\n", Data->Angle_X, Data->Angle_Y, Data->Angle_Z);
+        /*****************读取温度和压强*******************/
+        if(BMP085_DATA(&Data->temperature, &Data->pressure, Data->AC_123, Data->AC_456, Data->B1_MD)){
+            printf("当前温度为：%.2lf ℃\n", (double)Data->temperature/10.0);
+            printf("当前压强为：%ld Pa\n",Data->pressure);
+        }
+        else{
+        printf("获取压强温度失败！\n");
+        }
+        /*****************读取磁场角度*******************/
+        if(HMC5883L_READ(Data->BUF_HMC5883L, &Data->Angle))
+        {
+            printf("当前磁场角度为：%f\n",Data->Angle);
+        }
+        else{
+            printf("测量失败！\n");
+        }
+        /*****************读取角速度*******************/
+        if((L3G4200D_READ_AVERAGE(Data->BUF_L3G4200D, Data->BUF_MARK, 5) ==1) && 
+            (Data->Init_K3G4200D == 1))
+        {
+            printf("三轴角速度为：X = %f, Y = %f, Z = %f\n", Data->BUF_L3G4200D[0], Data->BUF_L3G4200D[1],Data->BUF_L3G4200D[2]);
+        }
+        else{
+            if(!Init_L3G4200D(Data->BUF_MARK)){
+                printf("L3G4200D 初始化失败!\n");
+                Data->Init_K3G4200D = 0;
+            }
+            else
+            {
+                if((Data->BUF_MARK[0] > 1) || (Data->BUF_MARK[1] > 1) || (Data->BUF_MARK[2] > 1)){
+                    printf("L3G4200D 初始化失败!\n");
+                    Data->Init_K3G4200D = 0;
+                }
+                else{
+                    Data->Init_K3G4200D = 1;
+                }
+                // printf("%f,%f,%f\t1000\n",BUF_MARK[0],BUF_MARK[1],BUF_MARK[2]);
+            }
+        }
+        printf("\n\n");
+        vTaskDelay(200 / portTICK_RATE_MS);
     }
 }
 
-///***************************HMC5883L**********************************/
-// uint8_t BUF_HMC5883L[6];
-// float Angle;
-// void app_main(void)
+/***************************L3G4200D*********************************/
+// void Task_L3G4200D(void *parameter)
+// {
+//     uint8_t Temperature;
+//     int Init_flag = 0; //初始化标志位
+//     if(!Init_L3G4200D(BUF_MARK)){
+//         //初始化读取MARK数组数据出错
+//         printf("L3G4200D 初始化失败!\n");
+//         Init_flag = 0;
+//     }
+//     else
+//     {
+//         //若初始化记录MARK数组值过大，判断为初始化失败
+//         if((BUF_MARK[0] > 1) || (BUF_MARK[1] > 1) || (BUF_MARK[2] > 1)){
+//             printf("L3G4200D 初始化失败!\n");
+//             Init_flag = 0;
+//         }
+//         else{
+//             Init_flag = 1;
+//         }
+//         // printf("%f,%f,%f\t9999999\n",BUF_MARK[0],BUF_MARK[1],BUF_MARK[2]);
+//     }
+//     while(1)
+//     {
+//         if((L3G4200D_READ_AVERAGE(BUF_L3G4200D, BUF_MARK, 5) ==1) && 
+//             (Init_flag == 1))
+//         {
+//             printf("X = %f, Y = %f, Z = %f\n", BUF_L3G4200D[0], BUF_L3G4200D[1],BUF_L3G4200D[2]);
+//         }
+//         else{
+//             if(!Init_L3G4200D(BUF_MARK)){
+//                 printf("L3G4200D 初始化失败!\n");
+//                 Init_flag = 0;
+//             }
+//             else
+//             {
+//                 if((BUF_MARK[0] > 1) || (BUF_MARK[1] > 1) || (BUF_MARK[2] > 1)){
+//                     printf("L3G4200D 初始化失败!\n");
+//                     Init_flag = 0;
+//                 }
+//                 else{
+//                     Init_flag = 1;
+//                 }
+//                 // printf("%f,%f,%f\t1000\n",BUF_MARK[0],BUF_MARK[1],BUF_MARK[2]);
+//             }
+//         }
+//         // Temperature = Single_Read(L3G4200_Addr, L3G4200_TEMP);
+//         // printf("Temperature = %d\n", Temperature);
+//         vTaskDelay(1000 / portTICK_RATE_MS);
+//     }
+// }
+
+/***************************HMC5883L*********************************/
+// void Task_HMC5883L(void *parameter)
 // {
 //     if(!Init_HMC5883L()){
 //         printf("HMC5883L 初始化失败!\n");
@@ -47,66 +224,54 @@ void app_main(void)
 //         else{
 //             printf("测量失败！\n");
 //         }
-//         vTaskDelay(1000 / portTICK_RATE_MS);
+//         vTaskDelay(2000 / portTICK_RATE_MS);
 //     }
 // }
 
-
-///***************************ADXL345**********************************/
-// uint8_t BUF_ADXL345[8];//临时存储数据
-// uint8_t BUF[8] = {0};//存储合成的数据
-// int A_X, A_Y, A_Z;
-// float Angle_X, Angle_Y, Angle_Z;
-// float Xg, Yg, Zg;
-
-//ADXL345
-// void app_main(void)
-// {
-// if(ADXL345_AUTO_Adjust())
-//     {
-//         if (Init_ADXL345())
-//         {
-//             while (1)
-//             {
-//                 ADXL345_Read_Average(&A_X, &A_Y, &A_Z, 10);
-//                 Xg = ((A_X * 3.9) / 1000) * 9.8;
-//                 Yg = ((A_Y * 3.9) / 1000) * 9.8;
-//                 Zg = ((A_Z * 3.9) / 1000) * 9.8;
-//                 Angle_X = ADXL345_Angle((float)A_X, (float)A_Y, (float)A_Z, 1);
-//                 Angle_Y = ADXL345_Angle((float)A_X, (float)A_Y, (float)A_Z, 2);
-//                 Angle_Z = ADXL345_Angle((float)A_X, (float)A_Y, (float)A_Z, 0);
-//                 printf("Xg = %lf\n", Xg);
-//                 printf("Yg = %lf\n", Yg);
-//                 printf("Zg = %lf\n", Zg);
-//                 printf("Angle_X = %lf\n", Angle_X);
-//                 printf("Angle_Y = %lf\n", Angle_Y);
-//                 printf("Angle_Z = %lf\n", Angle_Z);
-//                 printf("\n");
-//                 vTaskDelay(1000 / portTICK_RATE_MS);
-//             }
-//         }
-//     }
-// }
-
-
-// /***************************BMP085**********************************/
-// short AC_123[3];
-// unsigned short AC_456[3];
-// short B1_MD[5];
-// long temperature, pressure;
-
-// void app_main(void)
+/***************************BMP085**********************************/
+// void Task_BMP085(void *parameter)
 // {
 //     Init_BMP085(AC_123, AC_456, B1_MD);
 //     while(1)
 //     {
 //         if(BMP085_DATA(&temperature, &pressure, AC_123, AC_456, B1_MD)){
-//             printf("当前温度为：%lf ℃\n", (double)temperature/10.0);
+//             printf("当前温度为：%.2lf ℃\n", (double)temperature/10.0);
 //             printf("当前压强为：%ld Pa\n",pressure);
 //         }
 //         else{
 //         printf("获取压强温度失败！\n");
 //         }
-//         vTaskDelay(1000 / portTICK_RATE_MS);
+//         vTaskDelay(2000 / portTICK_RATE_MS);
 //     }
 // }
+
+/***************************ADXL345*********************************/
+// void Task_ADXL345(void *parameter)
+// {
+//     while(!Init_ADXL345());
+//     while(!ADXL345_AUTO_Adjust());
+//     while(!Init_ADXL345());
+//     GY_80_DATA_t *Data = (GY_80_DATA_t *)parameter;
+//     while (1)
+//     {
+//         ADXL345_Read_Average(&Data->A_X, &Data->A_Y, &Data->A_Z, 10);
+//         Data->Xg = (((float)Data->A_X * 3.9) / 1000) * 9.8;
+//         Data->Yg = (((float)Data->A_Y * 3.9) / 1000) * 9.8;
+//         Data->Zg = (((float)Data->A_Z * 3.9) / 1000) * 9.8;
+//         // Xg = (float)A_X * 3.9;
+//         // Yg = (float)A_Y * 3.9;
+//         // Zg = (float)A_Z * 3.9;
+//         Data->Angle_X = ADXL345_Angle((float)Data->A_X * 3.9, (float)Data->A_Y * 3.9, (float)Data->A_Z * 3.9, 1);
+//         Data->Angle_Y = ADXL345_Angle((float)Data->A_X * 3.9, (float)Data->A_Y * 3.9, (float)Data->A_Z * 3.9, 2);
+//         Data->Angle_Z = ADXL345_Angle((float)Data->A_X * 3.9, (float)Data->A_Y * 3.9, (float)Data->A_Z * 3.9, 0);
+//         printf("Xg = %lf\n", Data->Xg);
+//         printf("Yg = %lf\n", Data->Yg);
+//         printf("Zg = %lf\n", Data->Zg);
+//         printf("Angle_X = %lf\n", Data->Angle_X);
+//         printf("Angle_Y = %lf\n", Data->Angle_Y);
+//         printf("Angle_Z = %lf\n", Data->Angle_Z);
+//         printf("\n");
+//         vTaskDelay(200 / portTICK_RATE_MS);
+//     }
+// }
+

@@ -73,9 +73,14 @@ uint8_t I2C_ReceiveByte(void)
     for (i = 0; i < 8; i++)
     {
         gpio_set_level(I2C_SCL, 1); //置1，高电平读取SDA
-        if (gpio_get_level(I2C_SDA)){Byte |= (0x80 >> i);}
+        if (gpio_get_level(I2C_SDA)){
+            Byte |= (0x80 >> i);
+            // printf("1");
+            }
         gpio_set_level(I2C_SCL, 0);
+        // printf("0");
     }
+    // printf("\n");
     return Byte;
 }
 
@@ -112,8 +117,6 @@ int Single_Write(uint8_t SlaveAddress, uint8_t Write_Address, uint8_t Data)
     I2C_Start();
     //发送设备地址+写信号
     I2C_SendByte(SlaveAddress);
-    //设置高起始地址+器件地址
-    // I2C_SendByte(((REG_Address & 0x0700) >>7) | SlaveAddress & 0xFFFE);
     if (I2C_ReceiveAck())
     {
         I2C_Stop();
@@ -133,7 +136,6 @@ uint8_t Single_Read(uint8_t SlaveAddress, uint8_t Read_Address)
     uint8_t Data;
     I2C_Start();
     I2C_SendByte(SlaveAddress); //发送从机写地址
-    // I2C_SendByte(((REG_Address & 0x0700) >>7) | REG_Address & 0xFFFE);//设置高起始地址+器件地址
     if (I2C_ReceiveAck())
     {
         I2C_Stop();
