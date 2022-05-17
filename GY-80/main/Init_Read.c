@@ -15,6 +15,13 @@
 #define OSS 0   //BMP085 使用
 
 /***************************L3G4200D**********************************/
+/**
+ * @brief   初始化角速度传感器L3G4200D
+ * @param  BUF_MARK 用于改善零漂的补偿数组
+ * @return  
+ *          1：初始化成功
+ *          0：初始化失败
+ */
 int Init_L3G4200D(float *BUF_MARK)
 {
     float BUF_MARK_TEMP[3] = {0, 0, 0};
@@ -28,6 +35,13 @@ int Init_L3G4200D(float *BUF_MARK)
     if(!L3G4200D_READ_AVERAGE(BUF_MARK, BUF_MARK_TEMP, 5))                      return 0;
     return 1;
 }
+
+/**
+ * @brief   单次读取L3G4200D的数据
+ * @param   BUF_L3G4200D 用于存储本次读取到的数据的数组
+ * @return  
+ *          无
+ */
 void L3G4200D_READ(float *BUF_L3G4200D)
 {
     uint8_t BUF[6];
@@ -54,6 +68,16 @@ void L3G4200D_READ(float *BUF_L3G4200D)
     BUF_L3G4200D[1] = (float)T_Y * 0.00875;
     BUF_L3G4200D[2] = (float)T_Z * 0.00875;
 }
+
+/**
+ * @brief   多次读取L3G4200D的数据
+ * @param   BUF_L3G4200D 用于存储最终数据的数组
+ * @param   BUF_MARK 用于改善零漂的补偿数组
+ * @param   times 读取次数：times*10
+ * @return
+ *          1：读取成功
+ *          0：读取失败
+ */
 int L3G4200D_READ_AVERAGE(float *BUF_L3G4200D, float *BUF_MARK, int times)
 {
     // float BUF_TEMP[3] = {0, 0, 0};
@@ -91,140 +115,14 @@ int L3G4200D_READ_AVERAGE(float *BUF_L3G4200D, float *BUF_MARK, int times)
 }
 
 
-/***************************HMC5883L**********************************/
-
-int Init_HMC5883L(void)
-{
-    // if(Single_Read(HMC5883L_Addr, HMC5883L_Identification_Register_A) != 0x48)        return 0;
-    if(!Single_Write(HMC5883L_Addr,HMC5883L_Configuration_Register_A,0x58))      return 0;
-    if(!Single_Write(HMC5883L_Addr,HMC5883L_Configuration_Register_B,0x60))      return 0;
-    if(!Single_Write(HMC5883L_Addr,HMC5883L_Mode_Register,0x00))      return 0;
-    return 1;
-}
-int HMC5883L_READ(uint8_t *BUF, float *Angle)
-{
-    int x,y,z;
-    BUF[0] = Single_Read(HMC5883L_Addr,HMC5883L_Register_XMSB);
-    BUF[1] = Single_Read(HMC5883L_Addr,HMC5883L_Register_XLSB);
-    BUF[2] = Single_Read(HMC5883L_Addr,HMC5883L_Register_ZMSB);
-    BUF[3] = Single_Read(HMC5883L_Addr,HMC5883L_Register_ZLSB);
-	BUF[4] = Single_Read(HMC5883L_Addr,HMC5883L_Register_YMSB);
-    BUF[5] = Single_Read(HMC5883L_Addr,HMC5883L_Register_YLSB);
-
-    x=(BUF[0] << 8) | BUF[1]; //Combine MSB and LSB of X Data output register
-    z=(BUF[2] << 8) | BUF[3]; //Combine MSB and LSB of Z Data output register
-    y=(BUF[4] << 8) | BUF[5]; //Combine MSB and LSB of Z Data output register
-
-    if (x > 0x7fff)
-        x -= 0xffff;
-    if (z > 0x7fff)
-        z -= 0xffff;
-    if (y > 0x7fff)
-        y -= 0xffff;
-    *Angle= atan2(y,x) * (180 / 3.14159265) + 180; // angle in degrees
-    return 1;
-}
-
-/***************************BMP085**********************************/
-
-void Init_BMP085(short *AC_123, unsigned short *AC_456, short *B1_MD)
-{
-	AC_123[0] = Single_Read(BMP085_Addr,BMP085_AC1);//READ MSB
-	AC_123[0] = (AC_123[0]<<8)|Single_Read(BMP085_Addr,BMP085_AC1+ 1);//READ LSB AND COMBINE (MSB | LSB) 
-
-    AC_123[1] = Single_Read(BMP085_Addr,BMP085_AC2);//READ MSB
-	AC_123[1] = (AC_123[1]<<8)| Single_Read(BMP085_Addr,BMP085_AC2 + 1);//READ LSB AND COMBINE (MSB | LSB)
-
-	AC_123[2] = Single_Read(BMP085_Addr,BMP085_AC3);//READ MSB
-	AC_123[2] = (AC_123[2]<<8)| Single_Read(BMP085_Addr,BMP085_AC3 + 1);//READ LSB AND COMBINE (MSB | LSB)
-
-	AC_456[0] = Single_Read(BMP085_Addr,BMP085_AC4);//READ MSB
-	AC_456[0] = (AC_456[0]<<8)| Single_Read(BMP085_Addr,BMP085_AC4 + 1);//READ LSB AND COMBINE (MSB | LSB)
-
-	AC_456[1] = Single_Read(BMP085_Addr,BMP085_AC5);//READ MSB
-	AC_456[1] = (AC_456[1]<<8)| Single_Read(BMP085_Addr,BMP085_AC5 + 1);//READ LSB AND COMBINE (MSB | LSB)
-
-	AC_456[2] = Single_Read(BMP085_Addr,BMP085_AC6);//READ MSB
-	AC_456[2] = (AC_456[2]<<8)| Single_Read(BMP085_Addr,BMP085_AC6 + 1);//READ LSB AND COMBINE (MSB | LSB)
-
-	B1_MD[0] = Single_Read(BMP085_Addr,BMP085_B1);//READ MSB
-	B1_MD[0] = (B1_MD[0]<<8)| Single_Read(BMP085_Addr,BMP085_B1 + 1);//READ LSB AND COMBINE (MSB | LSB)
-
-	B1_MD[1] = Single_Read(BMP085_Addr,BMP085_B2);//READ MSB
-	B1_MD[1] = (B1_MD[1]<<8)| Single_Read(BMP085_Addr,BMP085_B2 + 1);//READ LSB AND COMBINE (MSB | LSB)
-
-	B1_MD[2] = Single_Read(BMP085_Addr,BMP085_MB);//READ MSB
-	B1_MD[2] = (B1_MD[2]<<8)| Single_Read(BMP085_Addr,BMP085_MB +1);//READ LSB AND COMBINE (MSB | LSB)
-
-	B1_MD[3] = Single_Read(BMP085_Addr,BMP085_MC);//READ MSB
-	B1_MD[3] = (B1_MD[3]<<8)| Single_Read(BMP085_Addr,BMP085_MC + 1);//READ LSB AND COMBINE (MSB | LSB)
-
-	B1_MD[4] = Single_Read(BMP085_Addr,BMP085_MD);//READ MSB
-	B1_MD[4] = (B1_MD[4]<<8)| Single_Read(BMP085_Addr,BMP085_MD + 1);//READ LSB AND COMBINE (MSB | LSB)
-
-}
-
-int BMP085_READ_TEMPERATURE(long *temperature_temp)
-{
-    if(!Single_Write(BMP085_Addr, BMP085_DATA_ADDR, BMP085_TEMPERATURE))      return 0;
-    ets_delay_us(5 * 1000);//延时5ms(>4.5ms)等待BMP085准备数据
-    *temperature_temp = Single_Read(BMP085_Addr, BMP085_DATA_MSB);
-    *temperature_temp = ((*temperature_temp) << 8) | Single_Read(BMP085_Addr, BMP085_DATA_LSB);
-    return 1;
-}
-
-int BMP085_READ_PRESSURE(long *pressure_temp)
-{
-    if(!Single_Write(BMP085_Addr, BMP085_DATA_ADDR, BMP085_PRESSURE))      return 0;
-    ets_delay_us(5 * 1000);//延时5ms(>4.5ms)等待BMP085准备数据
-    *pressure_temp = Single_Read(BMP085_Addr, BMP085_DATA_MSB);
-    *pressure_temp = ((*pressure_temp) << 8) | Single_Read(BMP085_Addr, BMP085_DATA_LSB);
-    *pressure_temp &= 0x0000FFFF;
-    return 1;
-}
-
-int BMP085_DATA(long *temperature_temp, long *pressure_temp, short *AC_123, unsigned short *AC_456, short *B1_MD)
-{
-    long ut,up;
-	long x1, x2, b5, b6, x3, b3, p;
-	unsigned long b4, b7;
-
-	if(!BMP085_READ_TEMPERATURE(&ut))       return 0;	   // 读取温度
-	if(!BMP085_READ_PRESSURE(&up))      return 0;  // 读取压强
-
-    //计算temperature
-	x1 = ((long)ut - AC_456[2]) * AC_456[1] >> 15;
-	x2 = ((long) B1_MD[3] << 11) / (x1 + B1_MD[4]);
-	b5 = x1 + x2;
-	*temperature_temp = (b5 + 8) >> 4;//此时的temperature输出的值是以0.1℃为单位
-
-    //计算pressure
-	b6 = b5 - 4000;
-	x1 = (B1_MD[1] * (b6 * b6 >> 12)) >> 11;
-	x2 = AC_123[1] * b6 >> 11;
-	x3 = x1 + x2;
-	b3 = (((long)AC_123[0] * 4 + x3) + 2)/4;
-	x1 = AC_123[2] * b6 >> 13;
-	x2 = (B1_MD[0] * (b6 * b6 >> 12)) >> 16;
-	x3 = ((x1 + x2) + 2) >> 2;
-	b4 = (AC_456[0] * (unsigned long) (x3 + 32768)) >> 15;
-	b7 = ((unsigned long) up - b3) * (50000 >> OSS);
-	if( b7 < 0x80000000){
-        p = (b7 * 2) / b4;
-    }    
-    else{
-        p = (b7 / b4) * 2;
-    }
-	x1 = (p >> 8) * (p >> 8);
-	x1 = (x1 * 3038) >> 16;
-	x2 = (-7357 * p) >> 16;
-	*pressure_temp = p + ((x1 + x2 + 3791) >> 4);//此时的pressure输出的值是以Pa为单位
-
-    return 1;
-}
-
-
 /****************************ADXL345**************************************/
+/**
+ * @brief   初始化加速度传感器ADXL345
+ * @param   无
+ * @return  
+ *          1：初始化成功
+ *          0：初始化失败
+ */
 int Init_ADXL345(void)
 {   
     //读取ADXL345的器件ID 判断是否为ADXL345的默认值：0xE5
@@ -244,6 +142,14 @@ int Init_ADXL345(void)
     return 1;
 }
 
+/**
+ * @brief   读取加速度传感器ADXL345一次
+ * @param   X x轴数据
+ * @param   Y y轴数据
+ * @param   Z z轴数据
+ * @return  
+ *          无
+ */
 void ADXL345_Read(int *X, int *Y, int *Z)
 {
     uint8_t BUF_ADXL345[8];
@@ -266,6 +172,15 @@ void ADXL345_Read(int *X, int *Y, int *Z)
     
 }
 
+/**
+ * @brief   读取加速度传感器ADXL345多次
+ * @param   X x轴数据
+ * @param   Y y轴数据
+ * @param   Z z轴数据
+ * @param   times 读取 times * 10次
+ * @return  
+ *          无
+ */
 void ADXL345_Read_Average(int *X, int *Y, int *Z, int times)
 {
     int temp_x_1, temp_y_1, temp_z_1;
@@ -296,6 +211,19 @@ void ADXL345_Read_Average(int *X, int *Y, int *Z, int times)
     }
 }
 
+/**
+ * @brief   计算偏角
+ * @param   A_X x轴数据
+ * @param   A_Y y轴数据
+ * @param   A_Z z轴数据
+ * @param   i 
+ *          0： Z轴角度
+ *          1： x轴角度
+ *          2： y轴角度
+ * 
+ * @return  
+ *          res：计算出来的偏角
+ */
 float ADXL345_Angle(float A_X, float A_Y, float A_Z, int i)
 {
     float temp;
@@ -318,6 +246,13 @@ float ADXL345_Angle(float A_X, float A_Y, float A_Z, int i)
     return res * 180 / 3.14159265;
 }
 
+/**
+ * @brief   加速度传感器ADXL345自校准
+ * @param   无
+ * @return  
+ *          1：校准成功
+ *          0：校准失败
+ */
 int ADXL345_AUTO_Adjust(void)
 {
     int temp_x, temp_y, temp_z;
@@ -358,5 +293,186 @@ int ADXL345_AUTO_Adjust(void)
 
     return 1;
 }
+
+
+/***************************HMC5883L**********************************/
+/**
+ * @brief   初始化磁场传感器HMC5883L
+ * @param   无
+ * @return  
+ *          1：初始化成功
+ *          0：初始化失败
+ */
+int Init_HMC5883L(void)
+{
+    // if(Single_Read(HMC5883L_Addr, HMC5883L_Identification_Register_A) != 0x48)        return 0;
+    if(!Single_Write(HMC5883L_Addr,HMC5883L_Configuration_Register_A,0x58))      return 0;
+    if(!Single_Write(HMC5883L_Addr,HMC5883L_Configuration_Register_B,0x60))      return 0;
+    if(!Single_Write(HMC5883L_Addr,HMC5883L_Mode_Register,0x00))      return 0;
+    return 1;
+}
+
+/**
+ * @brief   磁场传感器HMC5883L数据读取
+ * @param   BUF 存储原始数据的数组
+ * @param   Angle 计算出来的磁场角
+ * @return  
+ *          无
+ */
+void HMC5883L_READ(uint8_t *BUF, float *Angle)
+{
+    int x,y,z;
+    BUF[0] = Single_Read(HMC5883L_Addr,HMC5883L_Register_XMSB);
+    BUF[1] = Single_Read(HMC5883L_Addr,HMC5883L_Register_XLSB);
+    BUF[2] = Single_Read(HMC5883L_Addr,HMC5883L_Register_ZMSB);
+    BUF[3] = Single_Read(HMC5883L_Addr,HMC5883L_Register_ZLSB);
+	BUF[4] = Single_Read(HMC5883L_Addr,HMC5883L_Register_YMSB);
+    BUF[5] = Single_Read(HMC5883L_Addr,HMC5883L_Register_YLSB);
+
+    x=(BUF[0] << 8) | BUF[1]; //Combine MSB and LSB of X Data output register
+    z=(BUF[2] << 8) | BUF[3]; //Combine MSB and LSB of Z Data output register
+    y=(BUF[4] << 8) | BUF[5]; //Combine MSB and LSB of Z Data output register
+
+    if (x > 0x7fff)
+        x -= 0xffff;
+    if (z > 0x7fff)
+        z -= 0xffff;
+    if (y > 0x7fff)
+        y -= 0xffff;
+    *Angle= atan2(y,x) * (180 / 3.14159265) + 180; // angle in degrees
+
+}
+
+/***************************BMP085**********************************/
+
+/**
+ * @brief   初始化用于辅助计算温度、气压值的参数值数组
+ * @param   AC_123 
+ * @param   AC_456 
+ * @param   B1_MD 
+ * @param   
+ *          无
+ * 
+ * @return  
+ *          res：计算出来的偏角
+ */
+void Init_BMP085(short *AC_123, unsigned short *AC_456, short *B1_MD)
+{
+	AC_123[0] = Single_Read(BMP085_Addr,BMP085_AC1);//READ MSB
+	AC_123[0] = (AC_123[0]<<8)|Single_Read(BMP085_Addr,BMP085_AC1+ 1);//READ LSB AND COMBINE (MSB | LSB) 
+
+    AC_123[1] = Single_Read(BMP085_Addr,BMP085_AC2);//READ MSB
+	AC_123[1] = (AC_123[1]<<8)| Single_Read(BMP085_Addr,BMP085_AC2 + 1);//READ LSB AND COMBINE (MSB | LSB)
+
+	AC_123[2] = Single_Read(BMP085_Addr,BMP085_AC3);//READ MSB
+	AC_123[2] = (AC_123[2]<<8)| Single_Read(BMP085_Addr,BMP085_AC3 + 1);//READ LSB AND COMBINE (MSB | LSB)
+
+	AC_456[0] = Single_Read(BMP085_Addr,BMP085_AC4);//READ MSB
+	AC_456[0] = (AC_456[0]<<8)| Single_Read(BMP085_Addr,BMP085_AC4 + 1);//READ LSB AND COMBINE (MSB | LSB)
+
+	AC_456[1] = Single_Read(BMP085_Addr,BMP085_AC5);//READ MSB
+	AC_456[1] = (AC_456[1]<<8)| Single_Read(BMP085_Addr,BMP085_AC5 + 1);//READ LSB AND COMBINE (MSB | LSB)
+
+	AC_456[2] = Single_Read(BMP085_Addr,BMP085_AC6);//READ MSB
+	AC_456[2] = (AC_456[2]<<8)| Single_Read(BMP085_Addr,BMP085_AC6 + 1);//READ LSB AND COMBINE (MSB | LSB)
+
+	B1_MD[0] = Single_Read(BMP085_Addr,BMP085_B1);//READ MSB
+	B1_MD[0] = (B1_MD[0]<<8)| Single_Read(BMP085_Addr,BMP085_B1 + 1);//READ LSB AND COMBINE (MSB | LSB)
+
+	B1_MD[1] = Single_Read(BMP085_Addr,BMP085_B2);//READ MSB
+	B1_MD[1] = (B1_MD[1]<<8)| Single_Read(BMP085_Addr,BMP085_B2 + 1);//READ LSB AND COMBINE (MSB | LSB)
+
+	B1_MD[2] = Single_Read(BMP085_Addr,BMP085_MB);//READ MSB
+	B1_MD[2] = (B1_MD[2]<<8)| Single_Read(BMP085_Addr,BMP085_MB +1);//READ LSB AND COMBINE (MSB | LSB)
+
+	B1_MD[3] = Single_Read(BMP085_Addr,BMP085_MC);//READ MSB
+	B1_MD[3] = (B1_MD[3]<<8)| Single_Read(BMP085_Addr,BMP085_MC + 1);//READ LSB AND COMBINE (MSB | LSB)
+
+	B1_MD[4] = Single_Read(BMP085_Addr,BMP085_MD);//READ MSB
+	B1_MD[4] = (B1_MD[4]<<8)| Single_Read(BMP085_Addr,BMP085_MD + 1);//READ LSB AND COMBINE (MSB | LSB)
+
+}
+
+/**
+ * @brief   磁场传感器HMC5883L温度数据读取
+ * @param   temperature_temp 存储原始温度数据
+ * @return  
+ *          1：读取成功
+ *          0：读取失败
+ */
+int BMP085_READ_TEMPERATURE(long *temperature_temp)
+{
+    if(!Single_Write(BMP085_Addr, BMP085_DATA_ADDR, BMP085_TEMPERATURE))      return 0;
+    ets_delay_us(5 * 1000);//延时5ms(>4.5ms)等待BMP085准备数据
+    *temperature_temp = Single_Read(BMP085_Addr, BMP085_DATA_MSB);
+    *temperature_temp = ((*temperature_temp) << 8) | Single_Read(BMP085_Addr, BMP085_DATA_LSB);
+    return 1;
+}
+
+/**
+ * @brief   磁场传感器HMC5883L气压数据读取
+ * @param   pressure_temp 存储原始气压数据
+ * @return  
+ *          1：读取成功
+ *          0：读取失败
+ */
+int BMP085_READ_PRESSURE(long *pressure_temp)
+{
+    if(!Single_Write(BMP085_Addr, BMP085_DATA_ADDR, BMP085_PRESSURE))      return 0;
+    ets_delay_us(5 * 1000);//延时5ms(>4.5ms)等待BMP085准备数据
+    *pressure_temp = Single_Read(BMP085_Addr, BMP085_DATA_MSB);
+    *pressure_temp = ((*pressure_temp) << 8) | Single_Read(BMP085_Addr, BMP085_DATA_LSB);
+    *pressure_temp &= 0x0000FFFF;
+    return 1;
+}
+
+/**
+ * @brief   磁场传感器HMC5883L温度、气压数据计算
+ * @param   temperature_temp 存储原始温度数据
+ * @param   pressure_temp 存储原始气压数据
+ * @return  
+ *          1：计算成功
+ *          0：计算失败
+ */
+int BMP085_DATA_CALCULATE(long *temperature_temp, long *pressure_temp, short *AC_123, unsigned short *AC_456, short *B1_MD)
+{
+    long ut,up;
+	long x1, x2, b5, b6, x3, b3, p;
+	unsigned long b4, b7;
+
+	if(!BMP085_READ_TEMPERATURE(&ut))       return 0;	   // 读取温度
+	if(!BMP085_READ_PRESSURE(&up))      return 0;  // 读取压强
+
+    //计算temperature
+	x1 = ((long)ut - AC_456[2]) * AC_456[1] >> 15;
+	x2 = ((long) B1_MD[3] << 11) / (x1 + B1_MD[4]);
+	b5 = x1 + x2;
+	*temperature_temp = (b5 + 8) >> 4;//此时的temperature输出的值是以0.1℃为单位
+
+    //计算pressure
+	b6 = b5 - 4000;
+	x1 = (B1_MD[1] * (b6 * b6 >> 12)) >> 11;
+	x2 = AC_123[1] * b6 >> 11;
+	x3 = x1 + x2;
+	b3 = (((long)AC_123[0] * 4 + x3) + 2)/4;
+	x1 = AC_123[2] * b6 >> 13;
+	x2 = (B1_MD[0] * (b6 * b6 >> 12)) >> 16;
+	x3 = ((x1 + x2) + 2) >> 2;
+	b4 = (AC_456[0] * (unsigned long) (x3 + 32768)) >> 15;
+	b7 = ((unsigned long) up - b3) * (50000 >> OSS);
+	if( b7 < 0x80000000){
+        p = (b7 * 2) / b4;
+    }    
+    else{
+        p = (b7 / b4) * 2;
+    }
+	x1 = (p >> 8) * (p >> 8);
+	x1 = (x1 * 3038) >> 16;
+	x2 = (-7357 * p) >> 16;
+	*pressure_temp = p + ((x1 + x2 + 3791) >> 4);//此时的pressure输出的值是以Pa为单位
+
+    return 1;
+}
+
 
 
