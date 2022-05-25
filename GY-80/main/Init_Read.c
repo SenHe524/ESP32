@@ -26,13 +26,18 @@ int Init_L3G4200D(float *BUF_MARK)
 {
     float BUF_MARK_TEMP[3] = {0, 0, 0};
     if(Single_Read(L3G4200_Addr, L3G4200_DEVID) != 0xD3)        return 0;
-    if(!Single_Write(L3G4200_Addr,L3G4200_CTRL_REG1,0x8F))      return 0;
+    if(!Single_Write(L3G4200_Addr,L3G4200_CTRL_REG1,0x0F))      return 0;
     if(!Single_Write(L3G4200_Addr,L3G4200_CTRL_REG2,0x20))      return 0;
     if(!Single_Write(L3G4200_Addr,L3G4200_CTRL_REG3,0x08))      return 0;
-    if(!Single_Write(L3G4200_Addr,L3G4200_CTRL_REG4,0x00))      return 0;
-    if(!Single_Write(L3G4200_Addr,L3G4200_CTRL_REG5,0x80))      return 0;
+    // //250dps
+    // if(!Single_Write(L3G4200_Addr,L3G4200_CTRL_REG4,0x00))      return 0;
+    //500dps
+    if(!Single_Write(L3G4200_Addr,L3G4200_CTRL_REG4,0x10))      return 0;
+    // //2000dps
+    // if(!Single_Write(L3G4200_Addr,L3G4200_CTRL_REG4,0x30))      return 0;
+    if(!Single_Write(L3G4200_Addr,L3G4200_CTRL_REG5,0x00))      return 0;
     if(!Single_Write(L3G4200_Addr,L3G4200_REFERENCE,0x00))      return 0;
-    if(!L3G4200D_READ_AVERAGE(BUF_MARK, BUF_MARK_TEMP, 5))                      return 0;
+    L3G4200D_READ_AVERAGE(BUF_MARK, BUF_MARK_TEMP, 5);
     return 1;
 }
 
@@ -60,13 +65,18 @@ void L3G4200D_READ(float *BUF_L3G4200D)
     if(T_Y > 0x7FFF)  T_Y -= 0xFFFF;
     if(T_Z > 0x7FFF)  T_Z -= 0xFFFF;
 
-    // printf("X = %x, Y = %x, Z = %x\n",T_X,T_Y,T_Z);
     //FS = 250dps   * 0.00875
     //FS = 500dps   * 0.0175
     //FS = 2000dps  * 0.07
-    BUF_L3G4200D[0] = (float)T_X * 0.00875;// * 0.07
-    BUF_L3G4200D[1] = (float)T_Y * 0.00875;
-    BUF_L3G4200D[2] = (float)T_Z * 0.00875;
+    // BUF_L3G4200D[0] = (float)T_X * 0.00875;
+    // BUF_L3G4200D[1] = (float)T_Y * 0.00875;
+    // BUF_L3G4200D[2] = (float)T_Z * 0.00875;
+    BUF_L3G4200D[0] = (float)T_X * 0.0175;
+    BUF_L3G4200D[1] = (float)T_Y * 0.0175;
+    BUF_L3G4200D[2] = (float)T_Z * 0.0175;
+    // BUF_L3G4200D[0] = (float)T_X * 0.07;
+    // BUF_L3G4200D[1] = (float)T_Y * 0.07;
+    // BUF_L3G4200D[2] = (float)T_Z * 0.07;
 }
 
 /**
@@ -78,32 +88,29 @@ void L3G4200D_READ(float *BUF_L3G4200D)
  *          1：读取成功
  *          0：读取失败
  */
-int L3G4200D_READ_AVERAGE(float *BUF_L3G4200D, float *BUF_MARK, int times)
+void L3G4200D_READ_AVERAGE(float *BUF_L3G4200D, float *BUF_MARK, int times)
 {
-    // float BUF_TEMP[3] = {0, 0, 0};
     float BUF[3] = {0, 0, 0};
     for(int i = 0; i < times; i++)
     {
         float BUF_TEMP[3] = {0, 0, 0};
+        int k = 0;
         for(int j = 0; j < N; j++)
         {
             if((Single_Read(L3G4200_Addr, L3G4200_STATUS) & 0x08) == 0x08)
             {//检查L3G4200D是否有数据
                 L3G4200D_READ(BUF_L3G4200D);
+                BUF_TEMP[0] += BUF_L3G4200D[0];
+                BUF_TEMP[1] += BUF_L3G4200D[1];
+                BUF_TEMP[2] += BUF_L3G4200D[2];
+                k++;
             }
-            else{
-                printf("I'm Here!!!!\n");
-                return 0;
-            }
-            BUF_TEMP[0] += BUF_L3G4200D[0];
-            BUF_TEMP[1] += BUF_L3G4200D[1];
-            BUF_TEMP[2] += BUF_L3G4200D[2];
-            ets_delay_us(3 * 1000);
+            ets_delay_us(4 * 1000);
         }
-        BUF_TEMP[0] /= N;
-        BUF_TEMP[1] /= N;
-        BUF_TEMP[2] /= N;
-        // printf("%f  %f  %f\n",BUF_TEMP[0],BUF_TEMP[1],BUF_TEMP[2]);
+        BUF_TEMP[0] /= k;
+        BUF_TEMP[1] /= k;
+        BUF_TEMP[2] /= k;
+        printf("K = %d-----------------------\n", k);
         BUF[0] += BUF_TEMP[0];
         BUF[1] += BUF_TEMP[1];
         BUF[2] += BUF_TEMP[2];
@@ -111,7 +118,8 @@ int L3G4200D_READ_AVERAGE(float *BUF_L3G4200D, float *BUF_MARK, int times)
     BUF_L3G4200D[0] = BUF[0] / times - BUF_MARK[0];
     BUF_L3G4200D[1] = BUF[1] / times - BUF_MARK[1];
     BUF_L3G4200D[2] = BUF[2] / times - BUF_MARK[2];
-    return 1;
+    // printf("%f  %f  %f--------------BUF_L3G4200D\n",BUF_L3G4200D[0],BUF_L3G4200D[1],BUF_L3G4200D[2]);
+
 }
 
 
@@ -130,11 +138,11 @@ int Init_ADXL345(void)
 
     //以下配置ADXL345的寄存器，见PDF22页
     //关闭中断
-    if(!Single_Write(ADXL345_Addr,ADXL345_INT_ENABLE, 0x80))    return 0; 
+    if(!Single_Write(ADXL345_Addr,ADXL345_INT_ENABLE, 0x00))    return 0; 
     //全分辨率模式 测量范围,正负16g，13位模式，详见中文手册25-26页
     if(!Single_Write(ADXL345_Addr,ADXL345_DATA_FORMAT, 0x08))    return 0;
-    //设置功率模式：正常功率，数据速率设定为400hz  参考pdf24 13页
-    if(!Single_Write(ADXL345_Addr,ADXL345_BW_RATE, 0x0C))    return 0;
+    //设置功率模式：正常功率，数据速率设定为50hz  参考pdf24 13页
+    if(!Single_Write(ADXL345_Addr,ADXL345_BW_RATE, 0x09))    return 0;
     //选择电源模式为测量模式   参考pdf24页
     if(!Single_Write(ADXL345_Addr,ADXL345_POWER_CTL, 0x08))    return 0;
     //使能 DATA_READY 中断
@@ -195,6 +203,7 @@ void ADXL345_Read_Average(int *X, int *Y, int *Z, int times)
                 temp_x_2 += temp_x_1;
                 temp_y_2 += temp_y_1;
                 temp_z_2 += temp_z_1;
+                ets_delay_us(1000);
             }
             temp_x_2 /= 10;
             temp_y_2 /= 10;
@@ -305,10 +314,10 @@ int ADXL345_AUTO_Adjust(void)
  */
 int Init_HMC5883L(void)
 {
-    // if(Single_Read(HMC5883L_Addr, HMC5883L_Identification_Register_A) != 0x48)        return 0;
-    if(!Single_Write(HMC5883L_Addr,HMC5883L_Configuration_Register_A,0x58))      return 0;
-    if(!Single_Write(HMC5883L_Addr,HMC5883L_Configuration_Register_B,0x60))      return 0;
-    if(!Single_Write(HMC5883L_Addr,HMC5883L_Mode_Register,0x00))      return 0;
+    // if(Single_Read(HMC5883L_Addr, HMC5883L_Identification_Register_A) != 0x34)      return 0;
+    if(!Single_Write(HMC5883L_Addr,HMC5883L_Configuration_Register_A,0x70))         return 0;
+    if(!Single_Write(HMC5883L_Addr,HMC5883L_Configuration_Register_B,0x60))         return 0;
+    if(!Single_Write(HMC5883L_Addr,HMC5883L_Mode_Register,0x00))                    return 0;
     return 1;
 }
 
@@ -319,9 +328,10 @@ int Init_HMC5883L(void)
  * @return  
  *          无
  */
-void HMC5883L_READ(uint8_t *BUF, float *Angle)
+// void HMC5883L_RAW_READ(uint8_t *BUF, float *mag_XYZ);
+void HMC5883L_RAW_READ(uint8_t *BUF, float *Angle, float *mag_XYZ)
 {
-    int x,y,z;
+    // float norm;
     BUF[0] = Single_Read(HMC5883L_Addr,HMC5883L_Register_XMSB);
     BUF[1] = Single_Read(HMC5883L_Addr,HMC5883L_Register_XLSB);
     BUF[2] = Single_Read(HMC5883L_Addr,HMC5883L_Register_ZMSB);
@@ -329,19 +339,80 @@ void HMC5883L_READ(uint8_t *BUF, float *Angle)
 	BUF[4] = Single_Read(HMC5883L_Addr,HMC5883L_Register_YMSB);
     BUF[5] = Single_Read(HMC5883L_Addr,HMC5883L_Register_YLSB);
 
-    x=(BUF[0] << 8) | BUF[1]; //Combine MSB and LSB of X Data output register
-    z=(BUF[2] << 8) | BUF[3]; //Combine MSB and LSB of Z Data output register
-    y=(BUF[4] << 8) | BUF[5]; //Combine MSB and LSB of Z Data output register
-
-    if (x > 0x7fff)
-        x -= 0xffff;
-    if (z > 0x7fff)
-        z -= 0xffff;
-    if (y > 0x7fff)
-        y -= 0xffff;
-    *Angle= atan2(y,x) * (180 / 3.14159265) + 180; // angle in degrees
+    mag_XYZ[0]=(BUF[0] << 8) | BUF[1]; //Combine MSB and LSB of X Data output register
+    mag_XYZ[2]=(BUF[2] << 8) | BUF[3]; //Combine MSB and LSB of Z Data output register
+    mag_XYZ[1]=(BUF[4] << 8) | BUF[5]; //Combine MSB and LSB of Y Data output register
+    if (mag_XYZ[0] > 0x7FFF)
+        mag_XYZ[0] -= 0xFFFF;
+    if (mag_XYZ[2] > 0x7FFF)
+        mag_XYZ[2] -= 0xFFFF;
+    if (mag_XYZ[1] > 0x7FFF)
+        mag_XYZ[1] -= 0xFFFF;
+    printf("%f, %f, %f\n",mag_XYZ[0], mag_XYZ[1], mag_XYZ[2]);
+    Angle[0]= atan2(mag_XYZ[1],mag_XYZ[0]) * (180 / 3.14159265) + 180; //计算XY平面角度
+    Angle[1]= atan2(mag_XYZ[2],mag_XYZ[0]) * (180 / 3.14159265) + 180; //计算XZ平面角度
+    Angle[2]= atan2(mag_XYZ[2],mag_XYZ[1]) * (180 / 3.14159265) + 180; //计算YZ平面角度
+    ets_delay_us(6 * 1000);
+    // mag_XYZ[0] = (mag_XYZ[0] * 1.52) / 1000;
+    // mag_XYZ[1] = (mag_XYZ[1] * 1.52) / 1000;
+    // mag_XYZ[2] = (mag_XYZ[2] * 1.52) / 1000;
+    // printf("%f, %f, %f\n",mag_XYZ[0], mag_XYZ[1], mag_XYZ[2]);
+    // norm = sqrt(mag_XYZ[0] * mag_XYZ[0] + mag_XYZ[1] * mag_XYZ[1] + mag_XYZ[2] * mag_XYZ[2]);
+    // mag_XYZ[0] /= norm;
+    // mag_XYZ[1] /= norm;
+    // mag_XYZ[2] /= norm;
 
 }
+// void HMC5883L_SELFTEST(float *Offset, float *K_XYZ)
+// {
+//     float buf[6];
+//     float xyz[3];
+//     float GaXmax = 0, GaXmin = 0, GaYmax = 0, GaYmin = 0, GaZmax = 0, GaZmin = 0;
+//     printf("Start HMC5883L Selftest!!!!!!\n");
+//     Single_Write(HMC5883L_Addr,HMC5883L_Configuration_Register_A,0x71);
+//     Single_Write(HMC5883L_Addr,HMC5883L_Configuration_Register_B,0x60);
+//     Single_Write(HMC5883L_Addr,HMC5883L_Mode_Register,0x00);
+//     vTaskDelay(6 / portTICK_RATE_MS);
+//     for(int i = 0; i < 100; i++)
+//     {
+//         HMC5883L_RAW_READ(buf, xyz);
+//         GaXmax = GaXmax < xyz[0]? xyz[0]:GaXmax;
+// 		GaXmin = GaXmin > xyz[0]? xyz[0]:GaXmin;
+// 		GaYmax = GaYmax < xyz[1]? xyz[1]:GaYmax;
+// 		GaYmin = GaYmin > xyz[1]? xyz[1]:GaYmin;
+//         GaZmax = GaZmax < xyz[2]? xyz[2]:GaZmax;
+// 		GaZmin = GaZmin > xyz[2]? xyz[2]:GaZmin;
+//         ets_delay_us(10000);
+//         printf(".");
+//     }
+//     printf("%f, %f, %f, %f, %f, %f\n",GaXmax, GaXmin, GaYmax, GaYmin, GaZmax, GaZmin);
+//     printf("\nHMC5883L Selftest End!!!!!!\n");
+//     Offset[0] = (GaXmax+GaXmin)/2;
+//     Offset[1] = (GaYmax+GaYmin)/2;
+//     Offset[2] = (GaZmax+GaZmin)/2;
+//     K_XYZ[0] = 2 / (GaXmax-GaXmin);
+//     K_XYZ[1] = 2 / (GaYmax-GaYmin);
+//     K_XYZ[2] = 2 / (GaZmax-GaZmin);
+//     printf("%f, %f, %f, %f, %f, %f\n",Offset[0], Offset[1], Offset[2], K_XYZ[0], K_XYZ[1], K_XYZ[2]);
+// }
+// void HMC5883L_READ(uint8_t *BUF, float *Angle, float *mag_XYZ, float *Offset, float *K_XYZ)
+// {
+//     float rawGaXYZ[3];
+//     uint8_t BUF_TEMP[3];
+//     HMC5883L_RAW_READ(BUF_TEMP, rawGaXYZ);
+//     mag_XYZ[0] = (rawGaXYZ[0] - Offset[0]) * K_XYZ[0];
+//     mag_XYZ[1] = (rawGaXYZ[1] - Offset[1]) * K_XYZ[1];
+//     mag_XYZ[2] = (rawGaXYZ[2] - Offset[2]) * K_XYZ[2];
+//     printf("%f, %f, %f\n",mag_XYZ[0], mag_XYZ[1], mag_XYZ[2]);
+//     Angle[0]= atan2(mag_XYZ[1],mag_XYZ[0]) * (180 / 3.14159265) + 180; // angle in degrees
+//     Angle[1]= atan2(mag_XYZ[2],mag_XYZ[0]) * (180 / 3.14159265) + 180; // angle in degrees
+//     Angle[2]= atan2(mag_XYZ[2],mag_XYZ[1]) * (180 / 3.14159265) + 180; // angle in degrees
+//     mag_XYZ[0] = (mag_XYZ[0] * 1.52) / 1000;
+//     mag_XYZ[1] = (mag_XYZ[1] * 1.52) / 1000;
+//     mag_XYZ[2] = (mag_XYZ[2] * 1.52) / 1000;
+//     printf("%f, %f, %f\n",mag_XYZ[0], mag_XYZ[1], mag_XYZ[2]);
+// }
+
 
 /***************************BMP085**********************************/
 

@@ -14,7 +14,7 @@
 
 int Init_L3G4200D(float *BUF_MARK);
 void L3G4200D_READ(float *BUF_L3G4200D);
-int L3G4200D_READ_AVERAGE(float *BUF_L3G4200D, float *BUF_MARK, int times);
+void L3G4200D_READ_AVERAGE(float *BUF_L3G4200D, float *BUF_MARK, int times);
 
 /****************************ADXL345**************************************/
 int Init_ADXL345(void);
@@ -25,8 +25,10 @@ float ADXL345_Angle(float A_X, float A_Y, float A_Z, int i);
 
 /***************************HMC5883L**********************************/
 int Init_HMC5883L(void);
-void HMC5883L_READ(uint8_t *BUF, float *Angle);
-
+// void HMC5883L_RAW_READ(uint8_t *BUF, float *mag_XYZ);
+void HMC5883L_RAW_READ(uint8_t *BUF, float *Angle, float *mag_XYZ);
+// void HMC5883L_SELFTEST(float *Offset, float *K_XYZ);
+// void HMC5883L_READ(uint8_t *BUF, float *Angle, float *mag_XYZ, float *Offset, float *K_XYZ);
 
 /***************************BMP085**********************************/
 void Init_BMP085(short *AC_123, unsigned short *AC_456, short *B1_MD);
