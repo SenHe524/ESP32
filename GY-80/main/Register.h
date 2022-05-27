@@ -32,7 +32,9 @@
 #define	HMC5883L_Register_YMSB      0x07
 #define	HMC5883L_Register_YLSB      0x08
 #define	HMC5883L_Status_Register    0x09
-#define	HMC5883L_Identification_Register_A      0x11
+#define	HMC5883L_Identification_Register_A      0x10
+#define	HMC5883L_Identification_Register_B      0x11
+#define	HMC5883L_Identification_Register_C      0x12
 
 
 /* -------BMP085 Register names ------- */

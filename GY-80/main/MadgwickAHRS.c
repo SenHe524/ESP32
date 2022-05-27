@@ -37,10 +37,10 @@ float invSqrt(float x);
 
 //====================================================================================================
 // Functions
-
+// 梯度下降法---九轴
 void MadgwickAHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz)
 {
-	float recipNorm;
+	float Norm;
 	float s0, s1, s2, s3;
 	float qDot1, qDot2, qDot3, qDot4;
 	float hx, hy;
@@ -64,16 +64,16 @@ void MadgwickAHRSupdate(float gx, float gy, float gz, float ax, float ay, float 
 	{
 
 		// Normalise accelerometer measurement
-		recipNorm = invSqrt(ax * ax + ay * ay + az * az);
-		ax *= recipNorm;
-		ay *= recipNorm;
-		az *= recipNorm;
+		Norm = invSqrt(ax * ax + ay * ay + az * az);
+		ax *= Norm;
+		ay *= Norm;
+		az *= Norm;
 
 		// Normalise magnetometer measurement
-		recipNorm = invSqrt(mx * mx + my * my + mz * mz);
-		mx *= recipNorm;
-		my *= recipNorm;
-		mz *= recipNorm;
+		Norm = invSqrt(mx * mx + my * my + mz * mz);
+		mx *= Norm;
+		my *= Norm;
+		mz *= Norm;
 
 		// Auxiliary variables to avoid repeated arithmetic
 		_2q0mx = 2.0f * q0 * mx;
@@ -110,11 +110,11 @@ void MadgwickAHRSupdate(float gx, float gy, float gz, float ax, float ay, float 
 		s1 = _2q3 * (2.0f * q1q3 - _2q0q2 - ax) + _2q0 * (2.0f * q0q1 + _2q2q3 - ay) - 4.0f * q1 * (1 - 2.0f * q1q1 - 2.0f * q2q2 - az) + _2bz * q3 * (_2bx * (0.5f - q2q2 - q3q3) + _2bz * (q1q3 - q0q2) - mx) + (_2bx * q2 + _2bz * q0) * (_2bx * (q1q2 - q0q3) + _2bz * (q0q1 + q2q3) - my) + (_2bx * q3 - _4bz * q1) * (_2bx * (q0q2 + q1q3) + _2bz * (0.5f - q1q1 - q2q2) - mz);
 		s2 = -_2q0 * (2.0f * q1q3 - _2q0q2 - ax) + _2q3 * (2.0f * q0q1 + _2q2q3 - ay) - 4.0f * q2 * (1 - 2.0f * q1q1 - 2.0f * q2q2 - az) + (-_4bx * q2 - _2bz * q0) * (_2bx * (0.5f - q2q2 - q3q3) + _2bz * (q1q3 - q0q2) - mx) + (_2bx * q1 + _2bz * q3) * (_2bx * (q1q2 - q0q3) + _2bz * (q0q1 + q2q3) - my) + (_2bx * q0 - _4bz * q2) * (_2bx * (q0q2 + q1q3) + _2bz * (0.5f - q1q1 - q2q2) - mz);
 		s3 = _2q1 * (2.0f * q1q3 - _2q0q2 - ax) + _2q2 * (2.0f * q0q1 + _2q2q3 - ay) + (-_4bx * q3 + _2bz * q1) * (_2bx * (0.5f - q2q2 - q3q3) + _2bz * (q1q3 - q0q2) - mx) + (-_2bx * q0 + _2bz * q2) * (_2bx * (q1q2 - q0q3) + _2bz * (q0q1 + q2q3) - my) + _2bx * q1 * (_2bx * (q0q2 + q1q3) + _2bz * (0.5f - q1q1 - q2q2) - mz);
-		recipNorm = invSqrt(s0 * s0 + s1 * s1 + s2 * s2 + s3 * s3); // normalise step magnitude
-		s0 *= recipNorm;
-		s1 *= recipNorm;
-		s2 *= recipNorm;
-		s3 *= recipNorm;
+		Norm = invSqrt(s0 * s0 + s1 * s1 + s2 * s2 + s3 * s3); // normalise step magnitude
+		s0 *= Norm;
+		s1 *= Norm;
+		s2 *= Norm;
+		s3 *= Norm;
 
 		// Apply feedback step
 		qDot1 -= beta * s0;
@@ -134,14 +134,14 @@ void MadgwickAHRSupdate(float gx, float gy, float gz, float ax, float ay, float 
 	// q3 += qDot4 * 0.005;
 
 	// Normalise quaternion
-	recipNorm = invSqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
-	q0 *= recipNorm;
-	q1 *= recipNorm;
-	q2 *= recipNorm;
-	q3 *= recipNorm;
-	printf("Pitch: %f\n", -asin(-2 * q1 * q3 + 2 * q0 * q2) * 57.2957795f);
-	printf("Roll: %f\n", atan2(2 * q2 * q3 + 2 * q0 * q1, -2 * q1 * q1 - 2 * q2 * q2 + 1) * 57.2957795f);
-	printf("Yaw: %f\n", -atan2(2 * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 57.2957795f);
+	Norm = invSqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
+	q0 *= Norm;
+	q1 *= Norm;
+	q2 *= Norm;
+	q3 *= Norm;
+	printf("Roll: %f\n", atan2(2.0f * (q0 * q1 + q2 * q3), -2.0f * q1 * q1 - 2.0f * q2 * q2 + 1.0f) * 57.2957795f);
+	printf("Pitch: %f\n", asin(2.0f * (q0 * q2 - q1 * q3)) * 57.2957795f);
+	printf("Yaw: %f\n", atan2(2.0f * (q1 * q2 + q0 * q3), -2.0f * q2 * q2 -2.0f * q3 * q3 + 1.0f) * 57.2957795f);
 }
 
 //---------------------------------------------------------------------------------------------------
@@ -149,7 +149,7 @@ void MadgwickAHRSupdate(float gx, float gy, float gz, float ax, float ay, float 
 
 void MadgwickAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, float az)
 {
-	float recipNorm;
+	float Norm;
 	float s0, s1, s2, s3;
 	float qDot1, qDot2, qDot3, qDot4;
 	float _2q0, _2q1, _2q2, _2q3, _4q0, _4q1, _4q2, _8q1, _8q2, q0q0, q1q1, q2q2, q3q3;
@@ -165,10 +165,10 @@ void MadgwickAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, flo
 	{
 
 		// Normalise accelerometer measurement
-		recipNorm = invSqrt(ax * ax + ay * ay + az * az);
-		ax *= recipNorm;
-		ay *= recipNorm;
-		az *= recipNorm;
+		Norm = invSqrt(ax * ax + ay * ay + az * az);
+		ax *= Norm;
+		ay *= Norm;
+		az *= Norm;
 
 		// Auxiliary variables to avoid repeated arithmetic
 		_2q0 = 2.0f * q0;
@@ -190,11 +190,11 @@ void MadgwickAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, flo
 		s1 = _4q1 * q3q3 - _2q3 * ax + 4.0f * q0q0 * q1 - _2q0 * ay - _4q1 + _8q1 * q1q1 + _8q1 * q2q2 + _4q1 * az;
 		s2 = 4.0f * q0q0 * q2 + _2q0 * ax + _4q2 * q3q3 - _2q3 * ay - _4q2 + _8q2 * q1q1 + _8q2 * q2q2 + _4q2 * az;
 		s3 = 4.0f * q1q1 * q3 - _2q1 * ax + 4.0f * q2q2 * q3 - _2q2 * ay;
-		recipNorm = invSqrt(s0 * s0 + s1 * s1 + s2 * s2 + s3 * s3); // normalise step magnitude
-		s0 *= recipNorm;
-		s1 *= recipNorm;
-		s2 *= recipNorm;
-		s3 *= recipNorm;
+		Norm = invSqrt(s0 * s0 + s1 * s1 + s2 * s2 + s3 * s3); // normalise step magnitude
+		s0 *= Norm;
+		s1 *= Norm;
+		s2 *= Norm;
+		s3 *= Norm;
 
 		// Apply feedback step
 		qDot1 -= beta * s0;
@@ -210,14 +210,14 @@ void MadgwickAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, flo
 	q3 += qDot4 * (1.0f / sampleFreq);
 
 	// Normalise quaternion
-	recipNorm = invSqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
-	q0 *= recipNorm;
-	q1 *= recipNorm;
-	q2 *= recipNorm;
-	q3 *= recipNorm;
-	printf("Pitch: %f\n", -asin(-2 * q1 * q3 + 2 * q0 * q2) * 57.2957795f);
-	printf("Roll: %f\n", atan2(2 * q2 * q3 + 2 * q0 * q1, -2 * q1 * q1 - 2 * q2 * q2 + 1) * 57.2957795f);
-	printf("Yaw: %f\n", -atan2(2 * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 57.2957795f);
+	Norm = invSqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
+	q0 *= Norm;
+	q1 *= Norm;
+	q2 *= Norm;
+	q3 *= Norm;
+	printf("Roll: %f\n", atan2(2.0f * (q0 * q1 + q2 * q3), -2.0f * q1 * q1 - 2.0f * q2 * q2 + 1.0f) * 57.2957795f);
+	printf("Pitch: %f\n", asin(2.0f * (q0 * q2 - q1 * q3)) * 57.2957795f);
+	printf("Yaw: %f\n", atan2(2.0f * (q1 * q2 + q0 * q3), -2.0f * q2 * q2 -2.0f * q3 * q3 + 1.0f) * 57.2957795f);
 }
 
 //---------------------------------------------------------------------------------------------------

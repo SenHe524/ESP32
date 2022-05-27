@@ -14,6 +14,7 @@
 #include "MadgwickAHRS.h"
 #include "MahonyAHRS.h"
 #include "IMU.h"
+#include "KF.h"
 /******************************变量定义*********************************/
 typedef struct
 {
@@ -62,14 +63,14 @@ typedef struct
 // #define halfT 0.005f
 FLOAT_ANGLE_t Q_ANGLE;
 //******卡尔曼参数************
-float Q_angle=0.001;  	//陀螺仪噪声协方差
-float Q_gyro=0.003;     //陀螺仪漂移噪声协方差
-float R_angle=0.5;		//角度测量噪声协方差
-float dt=0.276;	        //dt为kalman滤波器采样时间;
-float Q_bias[3]; 		    //陀螺仪漂移
-float Angle_err;
-float K_0, K_1;
-float P[2][2] = { { 1, 0 },{ 0, 1 } };
+// float Q_angle=0.001;  	//陀螺仪噪声协方差
+// float Q_gyro=0.003;     //陀螺仪漂移噪声协方差
+// float R_angle=0.5;		//角度测量噪声协方差
+// float dt=0.276;	        //dt为kalman滤波器采样时间;
+// float Q_bias[3]; 		    //陀螺仪漂移
+// float Angle_err;
+// float K_0, K_1;
+// float P[2][2] = { { 1, 0 },{ 0, 1 } };
 
 /*************************任务句柄及回调函数声明**************************/
 static TaskHandle_t Task_GY_80_t = NULL;
@@ -81,7 +82,7 @@ void ADXL345_DATA(void);
 void HMC5883L_DATA(void);
 void BMP085_DATA(void);
 /*************************卡尔曼滤波函数声明**************************/
-void Kalman_Filter(int i);
+// void Kalman_Filter(int i);
 /******************************主函数*********************************/
 void app_main(void)
 {
@@ -94,29 +95,22 @@ void Init_GY_80(void)
     while(!Init_ADXL345());
     while(!ADXL345_AUTO_Adjust());
     while(!Init_ADXL345());
+    printf("ADXL345 初始化完成!\n");
     //初始化L3G4200D
-    while(1){
-        Init_L3G4200D(Data.BUF_MARK);
-        if((Data.BUF_MARK[0] > 1) || (Data.BUF_MARK[1] > 1) || (Data.BUF_MARK[2] > 1)){
-            printf("L3G4200D 初始化失败!\n");
-        }
-        else{
-            for(int i = 0; i < 3; i++)
-            {
-                Q_bias[i] = Data.BUF_MARK[i];
-            }
-            break;
-        }
-        vTaskDelay(10 / portTICK_RATE_MS);
-    }
-        
+    while(!Init_L3G4200D(Data.BUF_MARK));
+    // for(int i = 0; i < 3; i++)
+    // {
+    //     Q_bias[i] = Data.BUF_MARK[i];
+    //     printf("%f\t",Data.BUF_MARK[i]);
+    // }
+    printf("\nL3G4200D 初始化完成!\n");
     //初始化HMC5883L
-    while(!Init_HMC5883L()){
-        printf("HMC5883L 初始化失败!\n");
-    }
+    while(!Init_HMC5883L());
+    printf("HMC5883L 初始化完成!\n");
     // HMC5883L_SELFTEST(Data.Offset, Data.K_XYZ);
     //初始化BMP085
     Init_BMP085(Data.AC_123, Data.AC_456, Data.B1_MD);
+    printf("BMP085 初始化完成!\n");
 }
 /***************************GY_80*********************************/
 void Task_GY_80(void *parameter)
@@ -127,11 +121,11 @@ void Task_GY_80(void *parameter)
     while (1)
     {
         printf("当前时间为：%lld------------------------1\n",esp_timer_get_time());
-        /*****************读取加速度*******************/
-        ADXL345_DATA();
-        // printf("当前时间为：%lld------------------------2\n",esp_timer_get_time());
         /*****************读取角速度*******************/
         L3G4200D_DATA();
+        // printf("当前时间为：%lld------------------------2\n",esp_timer_get_time());
+        /*****************读取加速度*******************/
+        ADXL345_DATA();
         // printf("当前时间为：%lld------------------------3\n",esp_timer_get_time());
         /*****************读取温度和压强*******************/
         BMP085_DATA();
@@ -140,21 +134,43 @@ void Task_GY_80(void *parameter)
         HMC5883L_DATA();
         // printf("当前时间为：%lld------------------------5\n",esp_timer_get_time());
         // Kalman_Filter(0);//对X轴陀螺仪数据进行滤波
-        // // printf("当前时间为：%lld------------------------6\n",esp_timer_get_time());
+        // // // printf("当前时间为：%lld------------------------6\n",esp_timer_get_time());
         // Kalman_Filter(1);//对Y轴陀螺仪数据进行滤波
-        // // printf("当前时间为：%lld------------------------7\n",esp_timer_get_time());
+        // // // printf("当前时间为：%lld------------------------7\n",esp_timer_get_time());
         // Kalman_Filter(2);//对Z轴陀螺仪数据进行滤波
+
+        Data.ACC_Angle[0] = Kalman_getAngle(Data.ACC_Angle[0], Data.BUF_GYRO[0], 10);
+        Data.ACC_Angle[1] = Kalman_getAngle(Data.ACC_Angle[1], Data.BUF_GYRO[1], 10);
+        Data.ACC_Angle[2] = Kalman_getAngle(Data.ACC_Angle[2], Data.BUF_GYRO[2], 10);
+
         printf("当前时间为：%lld------------------------8\n",esp_timer_get_time());
-        // printf("Kalman_Angle: X = %f, Y = %f, Z = %f\n",Data.Kalman_Angle[0] ,Data.Kalman_Angle[1] ,Data.Kalman_Angle[2]);
+        printf("Kalman_Angle: X = %f, Y = %f, Z = %f\n",Data.Kalman_Angle[0] ,Data.Kalman_Angle[1] ,Data.Kalman_Angle[2]);
         // printf("三轴角速度为：X = %f, Y = %f, Z = %f\n", Data.BUF_GYRO[0], Data.BUF_GYRO[1],Data.BUF_GYRO[2]);
-        IMU_AHRSupdate(Data.BUF_GYRO[0], Data.BUF_GYRO[1], Data.BUF_GYRO[2], 
+        // printf("--------------------------------------------------------------\n");
+        // IMU_AHRSupdate(Data.BUF_GYRO[0], Data.BUF_GYRO[1], Data.BUF_GYRO[2], 
+        //                 Data.ACC_XYZ_G[0], Data.ACC_XYZ_G[1], Data.ACC_XYZ_G[2],
+        //                 Data.mag_XYZ[0], Data.mag_XYZ[1], Data.mag_XYZ[2]);
+        // printf("--------------------------------------------------------------\n");
+        // AHRSupdate(Data.BUF_GYRO[0], Data.BUF_GYRO[1], Data.BUF_GYRO[2], 
+        //                 Data.ACC_XYZ_G[0], Data.ACC_XYZ_G[1], Data.ACC_XYZ_G[2],
+        //                 Data.mag_XYZ[0], Data.mag_XYZ[1], Data.mag_XYZ[2]);
+        // printf("--------------------------------------------------------------\n");
+        // MadgwickAHRSupdate(Data.BUF_GYRO[0], Data.BUF_GYRO[1], Data.BUF_GYRO[2], 
+        //                 Data.ACC_XYZ_G[0], Data.ACC_XYZ_G[1], Data.ACC_XYZ_G[2],
+        //                 Data.mag_XYZ[0], Data.mag_XYZ[1], Data.mag_XYZ[2]);
+        // printf("--------------------------------------------------------------\n");
+        // MadgwickAHRSupdateIMU(Data.BUF_GYRO[0], Data.BUF_GYRO[1], Data.BUF_GYRO[2], 
+        //                     Data.ACC_XYZ_G[0], Data.ACC_XYZ_G[1], Data.ACC_XYZ_G[2]);//有一定作用
+        printf("--------------------------------------------------------------\n");
+        MahonyAHRSupdate(Data.BUF_GYRO[0], Data.BUF_GYRO[1], Data.BUF_GYRO[2], 
                         Data.ACC_XYZ_G[0], Data.ACC_XYZ_G[1], Data.ACC_XYZ_G[2],
                         Data.mag_XYZ[0], Data.mag_XYZ[1], Data.mag_XYZ[2]);
-        // MadgwickAHRSupdateIMU(Data.BUF_GYRO[0], Data.BUF_GYRO[1], Data.BUF_GYRO[2], 
-        //                     Data.ACC_XYZ_G[0], Data.ACC_XYZ_G[1], Data.ACC_XYZ_G[2]);
+        printf("--------------------------------------------------------------\n");
+        MahonyAHRSupdateIMU(Data.BUF_GYRO[0], Data.BUF_GYRO[1], Data.BUF_GYRO[2], 
+                            Data.ACC_XYZ_G[0], Data.ACC_XYZ_G[1], Data.ACC_XYZ_G[2]);
+                            
         // printf("Yaw: %f\n", 0.9 * (Data.yaw - Data.BUF_GYRO[2] * 0.01) + 0.1 * Data.mag_Angle[0]);
         printf("\n\n");
-        // printf("----------------------------------%d---------------------------------------------\n", ++i);
         vTaskDelay(1000 / portTICK_RATE_MS);
     }
 }
@@ -166,7 +182,7 @@ void L3G4200D_DATA(void)
     L3G4200D_READ_AVERAGE(Data.BUF_GYRO, Data.BUF_MARK, 2);
     temp = Single_Read(L3G4200_Addr, L3G4200_TEMP);
     printf("三轴角速度为：X = %f, Y = %f, Z = %f\n", Data.BUF_GYRO[0], Data.BUF_GYRO[1], Data.BUF_GYRO[2]);
-    printf("当前温度为：%d℃\n",temp);
+    printf("当前芯片温度为：%d℃\n",temp);
 }
 void ADXL345_DATA(void)
 {
@@ -178,6 +194,10 @@ void ADXL345_DATA(void)
     Data.ACC_Angle[1] = ADXL345_Angle((float)Data.A_XYZ[0] * 3.9, (float)Data.A_XYZ[1] * 3.9, (float)Data.A_XYZ[2] * 3.9, 2);
     Data.ACC_Angle[2] = ADXL345_Angle((float)Data.A_XYZ[0] * 3.9, (float)Data.A_XYZ[1] * 3.9, (float)Data.A_XYZ[2] * 3.9, 0);
     printf("三轴加速度为：Xg = %lf, Yg = %lf, Zg = %lf\n", Data.ACC_XYZ_G[0], Data.ACC_XYZ_G[1], Data.ACC_XYZ_G[2]);
+    Data.ACC_Angle[0] = kalmanCalculate(Data.ACC_Angle[0], Data.BUF_GYRO[0], 200);
+    Data.ACC_Angle[1] = kalmanCalculate(Data.ACC_Angle[1], Data.BUF_GYRO[1], 200);
+    Data.ACC_Angle[2] = kalmanCalculate(Data.ACC_Angle[2], Data.BUF_GYRO[2], 200);
+
     printf("偏角为：Angle_X = %lf, Angle_Y = %lf, Angle_Z = %lf\n", Data.ACC_Angle[0], Data.ACC_Angle[1], Data.ACC_Angle[2]);
 }
 void HMC5883L_DATA(void)
@@ -201,28 +221,28 @@ void BMP085_DATA(void)
     }
 }
 
-void Kalman_Filter(int i)		
-{
-    Data.Kalman_Angle[i] += (Data.BUF_GYRO[i] - Q_bias[i]) * dt; //先验估计
+// void Kalman_Filter(int i)		
+// {
+//     Data.Kalman_Angle[i] += (Data.BUF_GYRO[i] - Q_bias[i]) * dt; //先验估计
 
-    P[0][0] += Q_angle -(P[0][1] + P[1][0]) * dt;
-    P[0][1] += -P[1][1] * dt;
-    P[1][0] += -P[1][1] * dt;
-    P[1][1] += Q_gyro;
+//     P[0][0] += Q_angle -(P[0][1] + P[1][0]) * dt;
+//     P[0][1] += -P[1][1] * dt;
+//     P[1][0] += -P[1][1] * dt;
+//     P[1][1] += Q_gyro;
 
-    Angle_err = Data.ACC_Angle[i] - Data.Kalman_Angle[i];	//zk-先验估计
+//     Angle_err = Data.ACC_Angle[i] - Data.Kalman_Angle[i];	//zk-先验估计
 
-    K_0 = P[0][0] / (P[0][0] + R_angle);
-    K_1 = P[1][0] / (P[0][0] + R_angle);
+//     K_0 = P[0][0] / (P[0][0] + R_angle);
+//     K_1 = P[1][0] / (P[0][0] + R_angle);
 
 
-    P[0][0] -= K_0 * P[0][0];		 //后验估计误差协方差
-    P[0][1] -= K_0 * P[0][1];
-    P[1][0] -= K_1 * P[0][0];
-    P[1][1] -= K_1 * P[0][1];
+//     P[0][0] -= K_0 * P[0][0];		 //后验估计误差协方差
+//     P[0][1] -= K_0 * P[0][1];
+//     P[1][0] -= K_1 * P[0][0];
+//     P[1][1] -= K_1 * P[0][1];
         
-    Data.Kalman_Angle[i] += K_0 * Angle_err;	 //后验估计
-    Q_bias[i] += K_1 * Angle_err;	 //后验估计
-    Data.BUF_GYRO[i]   = Data.BUF_GYRO[i] - Q_bias[i];	 //输出值(后验估计)的微分=角速度
+//     Data.Kalman_Angle[i] += K_0 * Angle_err;	 //后验估计
+//     Q_bias[i] += K_1 * Angle_err;	 //后验估计
+//     Data.BUF_GYRO[i]   = Data.BUF_GYRO[i] - Q_bias[i];	 //输出值(后验估计)的微分=角速度
 
-}
+// }

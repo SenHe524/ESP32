@@ -194,6 +194,7 @@ uint8_t Single_Read(uint8_t SlaveAddress, uint8_t Read_Address)
     if (I2C_ReceiveAck())
     {
         I2C_Stop();
+        printf("I'm Here!--------No Ack!\n");
         return 0;
     }
     I2C_SendByte(Read_Address); //要读取的地址
