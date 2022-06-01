@@ -21,8 +21,8 @@
 //---------------------------------------------------------------------------------------------------
 // Definitions
 
-#define sampleFreq 7.0f // sample frequency in Hz
-#define betaDef 0.1f	  // 2 * proportional gain
+#define sampleFreq 62.0f // sample frequency in Hz
+#define betaDef 1.0f	  // 2 * proportional gain
 
 //---------------------------------------------------------------------------------------------------
 // Variable definitions
@@ -38,7 +38,7 @@ float invSqrt(float x);
 //====================================================================================================
 // Functions
 // 梯度下降法---九轴
-void MadgwickAHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz)
+void MadgwickAHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz, float *Q_angle)
 {
 	float Norm;
 	float s0, s1, s2, s3;
@@ -49,7 +49,7 @@ void MadgwickAHRSupdate(float gx, float gy, float gz, float ax, float ay, float 
 	// Use IMU algorithm if magnetometer measurement invalid (avoids NaN in magnetometer normalisation)
 	if ((mx == 0.0f) && (my == 0.0f) && (mz == 0.0f))
 	{
-		MadgwickAHRSupdateIMU(gx, gy, gz, ax, ay, az);
+		MadgwickAHRSupdateIMU(gx, gy, gz, ax, ay, az, Q_angle);
 		return;
 	}
 
@@ -128,10 +128,6 @@ void MadgwickAHRSupdate(float gx, float gy, float gz, float ax, float ay, float 
 	q1 += qDot2 * (1.0f / sampleFreq);
 	q2 += qDot3 * (1.0f / sampleFreq);
 	q3 += qDot4 * (1.0f / sampleFreq);
-	// q0 += qDot1 * 0.005;
-	// q1 += qDot2 * 0.005;
-	// q2 += qDot3 * 0.005;
-	// q3 += qDot4 * 0.005;
 
 	// Normalise quaternion
 	Norm = invSqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
@@ -139,15 +135,21 @@ void MadgwickAHRSupdate(float gx, float gy, float gz, float ax, float ay, float 
 	q1 *= Norm;
 	q2 *= Norm;
 	q3 *= Norm;
-	printf("Roll: %f\n", atan2(2.0f * (q0 * q1 + q2 * q3), -2.0f * q1 * q1 - 2.0f * q2 * q2 + 1.0f) * 57.2957795f);
-	printf("Pitch: %f\n", asin(2.0f * (q0 * q2 - q1 * q3)) * 57.2957795f);
-	printf("Yaw: %f\n", atan2(2.0f * (q1 * q2 + q0 * q3), -2.0f * q2 * q2 -2.0f * q3 * q3 + 1.0f) * 57.2957795f);
+	// Q_angle[0] = -asin(-2.0f * q1 * q3 + 2.0f * q0 * q2) * 57.2957795f;
+	// Q_angle[1] = atan2(2.0f * q2 * q3 + 2.0f * q0 * q1, -2.0f * q1 * q1 - 2.0f * q2 * q2 + 1.0f) * 57.2957795f;
+	// Q_angle[2] = -atan2(2.0f * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 57.2957795f;
+	Q_angle[0] = asin(-2.0f * q1 * q3 + 2.0f * q0 * q2) * 57.2957795f;
+	Q_angle[1] = atan2(2.0f * q2 * q3 + 2.0f * q0 * q1, -2.0f * q1 * q1 - 2.0f * q2 * q2 + 1.0f) * 57.2957795f;
+	Q_angle[2] = atan2(2.0f * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 57.2957795f;
+	// printf("Roll: %f\n", atan2(2.0f * (q0 * q1 + q2 * q3), -2.0f * q1 * q1 - 2.0f * q2 * q2 + 1.0f) * 57.2957795f);
+	// printf("Pitch: %f\n", asin(2.0f * (q0 * q2 - q1 * q3)) * 57.2957795f);
+	// printf("Yaw: %f\n", atan2(2.0f * (q1 * q2 + q0 * q3), -2.0f * q2 * q2 -2.0f * q3 * q3 + 1.0f) * 57.2957795f);
 }
 
 //---------------------------------------------------------------------------------------------------
 // IMU algorithm update
 
-void MadgwickAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, float az)
+void MadgwickAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, float az, float *Q_angle)
 {
 	float Norm;
 	float s0, s1, s2, s3;
@@ -215,9 +217,12 @@ void MadgwickAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, flo
 	q1 *= Norm;
 	q2 *= Norm;
 	q3 *= Norm;
-	printf("Roll: %f\n", atan2(2.0f * (q0 * q1 + q2 * q3), -2.0f * q1 * q1 - 2.0f * q2 * q2 + 1.0f) * 57.2957795f);
-	printf("Pitch: %f\n", asin(2.0f * (q0 * q2 - q1 * q3)) * 57.2957795f);
-	printf("Yaw: %f\n", atan2(2.0f * (q1 * q2 + q0 * q3), -2.0f * q2 * q2 -2.0f * q3 * q3 + 1.0f) * 57.2957795f);
+	// Q_angle[0] = -asin(-2.0f * q1 * q3 + 2.0f * q0 * q2) * 57.2957795f;
+	// Q_angle[1] = atan2(2.0f * q2 * q3 + 2.0f * q0 * q1, -2.0f * q1 * q1 - 2.0f * q2 * q2 + 1.0f) * 57.2957795f;
+	// Q_angle[2] = -atan2(2.0f * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 57.2957795f;
+	Q_angle[0] = asin(-2.0f * q1 * q3 + 2.0f * q0 * q2) * 57.2957795f;
+	Q_angle[1] = atan2(2.0f * q2 * q3 + 2.0f * q0 * q1, -2.0f * q1 * q1 - 2.0f * q2 * q2 + 1.0f) * 57.2957795f;
+	Q_angle[2] = atan2(2.0f * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 57.2957795f;
 }
 
 //---------------------------------------------------------------------------------------------------

@@ -87,6 +87,7 @@
 #define ADXL345_DATAY1          0x35
 #define ADXL345_DATAZ0          0x36
 #define ADXL345_DATAZ1          0x37
-
+#define ADXL345_FIFO_CTL        0x38
+#define ADXL345_FIFO_STATUS     0x39
 
 #endif

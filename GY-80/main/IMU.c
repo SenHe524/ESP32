@@ -2,7 +2,7 @@
 #include <math.h>
 #include "stdio.h"
 
-/*************************百度知道代码宏定义****************************************/
+/*************************互补滤波代码宏定义****************************************/
 // #define Kp 1.0f // proportional gain governs rate of convergence to accelerometer/magnetometer
 // #define Ki 0.01f // integral gain governs rate of convergence of gyroscope biases
 float invSqrt(float x);
@@ -13,7 +13,7 @@ float q0_temp, q1_temp, q2_temp, q3_temp;
 //不知名代码——AHRSupdate 宏定义
 // AHRS algorithm update
 static float exInt = 0, eyInt = 0, ezInt = 0;
-static float halfT = 0.04;
+static float halfT = 0.015;
 static float k10 = 0.0f, k11 = 0.0f, k12 = 0.0f, k13 = 0.0f;
 static float k20 = 0.0f, k21 = 0.0f, k22 = 0.0f, k23 = 0.0f;
 static float k30 = 0.0f, k31 = 0.0f, k32 = 0.0f, k33 = 0.0f;
@@ -24,14 +24,13 @@ static float k40 = 0.0f, k41 = 0.0f, k42 = 0.0f, k43 = 0.0f;
 // Ki积分增益 决定了陀螺仪偏差的收敛速度
 
 /*******************************互补滤波*******************************/
-void IMU_AHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz)
+void IMU_AHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz, float *Q_angle)
 {
 	float norm;
 	float hx, hy, hz, bx, bz;
 	float vx, vy, vz, wx, wy, wz;
 	float ex, ey, ez;
-	// float q0_temp, q1_temp, q2_temp, q3_temp;
-	// float halfT = 0.005;
+
 	// 先把这些用得到的值算好
 	float q0q0 = q0 * q0;
 	float q0q1 = q0 * q1;
@@ -94,9 +93,9 @@ void IMU_AHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, 
 	这个叉积向量仍旧是位于机体坐标系上的，而陀螺积分误差也是在机体坐标系，而且叉积的大小与陀螺积分误差成正比，正好拿来纠正陀螺。（你可以自己拿东西想象一下）由于陀螺是对机体直接积分，所以对陀螺的纠正量会直接体现在对机体坐标系的纠正。
 	*/
 
-	exInt = exInt + ex * Ki;
-	eyInt = eyInt + ey * Ki;
-	ezInt = ezInt + ez * Ki;
+	exInt = exInt + ex * Ki * halfT;
+	eyInt = eyInt + ey * Ki * halfT;
+	ezInt = ezInt + ez * Ki * halfT;
 	// adjusted gyroscope measurements
 	// PI调节陀螺仪数据
 	gx = gx + Kp * ex + exInt;
@@ -114,13 +113,16 @@ void IMU_AHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, 
 	q1 = q1 * norm;
 	q2 = q2 * norm;
 	q3 = q3 * norm;
-	printf("Roll: %f\n", atan2(2.0f * (q0 * q1 + q2 * q3), -2.0f * q1 * q1 - 2.0f * q2 * q2 + 1.0f) * 57.2957795f);
-	printf("Pitch: %f\n", asin(2.0f * (q0 * q2 - q1 * q3)) * 57.2957795f);
-	printf("Yaw: %f\n", atan2(2.0f * (q1 * q2 + q0 * q3), -2.0f * q2 * q2 -2.0f * q3 * q3 + 1.0f) * 57.2957795f);
+	// Q_angle[0] = -asin(-2.0f * q1 * q3 + 2.0f * q0 * q2) * 57.2957795f;
+	// Q_angle[1] = atan2(2.0f * q2 * q3 + 2.0f * q0 * q1, -2.0f * q1 * q1 - 2.0f * q2 * q2 + 1.0f) * 57.2957795f;
+	// Q_angle[2] = -atan2(2.0f * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 57.2957795f;
+	Q_angle[0] = asin(-2.0f * q1 * q3 + 2.0f * q0 * q2) * 57.2957795f;
+	Q_angle[1] = atan2(2.0f * q2 * q3 + 2.0f * q0 * q1, -2.0f * q1 * q1 - 2.0f * q2 * q2 + 1.0f) * 57.2957795f;
+	Q_angle[2] = atan2(2.0f * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 57.2957795f;
 }
 
 //*********代码来源：桌面文件-TESTVer.2.13******************//
-void AHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz)
+void AHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz, float *Q_angle)
 {
 	float norm;				  //用于单位化
 	float hx, hy, hz, bx, bz; //
@@ -171,22 +173,15 @@ void AHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, floa
 	ey = (az * vx - ax * vz) + (mz * wx - mx * wz);
 	ez = (ax * vy - ay * vx) + (mx * wy - my * wx);
 
-	exInt = exInt + ex * halfT;
-	eyInt = eyInt + ey * halfT;
-	ezInt = ezInt + ez * halfT;
+
+	exInt = exInt + ex * Ki * halfT;
+	eyInt = eyInt + ey * Ki * halfT;
+	ezInt = ezInt + ez * Ki * halfT;
 	// adjusted gyroscope measurements
 	// PI调节陀螺仪数据
-	gx = gx + Kp * ex + Ki * exInt;
-	gy = gy + Kp * ey + Ki * eyInt;
-	gz = gz + Kp * ez + Ki * ezInt;
-	// exInt = exInt + ex * Ki;
-	// eyInt = eyInt + ey * Ki;
-	// ezInt = ezInt + ez * Ki;
-	// // adjusted gyroscope measurements
-	// // PI调节陀螺仪数据
-	// gx = gx + Kp * ex + exInt;
-	// gy = gy + Kp * ey + eyInt;
-	// gz = gz + Kp * ez + ezInt;
+	gx = gx + Kp * ex + exInt;
+	gy = gy + Kp * ey + eyInt;
+	gz = gz + Kp * ez + ezInt;
 
 	// RUNGE_KUTTA 法解微分方程
 	k10 = 0.5 * (-gx * q1 - gy * q2 - gz * q3);
@@ -220,13 +215,12 @@ void AHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, floa
 	q1 = q1_temp * norm;
 	q2 = q2_temp * norm;
 	q3 = q3_temp * norm;
-
-	// printf("Pitch: %f\n", -asin(-2.0f * q1 * q3 + 2.0f * q0 * q2) * 57.2957795f);
-	// printf("Roll: %f\n", atan2(2.0f * q2 * q3 + 2.0f * q0 * q1, -2.0f * q1 * q1 - 2.0f * q2 * q2 + 1.0f) * 57.2957795f);
-	// printf("Yaw: %f\n", -atan2(2.0f * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 57.2957795f);
-	printf("Roll: %f\n", atan2(2.0f * (q0 * q1 + q2 * q3), -2.0f * q1 * q1 - 2.0f * q2 * q2 + 1.0f) * 57.2957795f);
-	printf("Pitch: %f\n", asin(2.0f * (q0 * q2 - q1 * q3)) * 57.2957795f);
-	printf("Yaw: %f\n", atan2(2.0f * (q1 * q2 + q0 * q3), -2.0f * q2 * q2 -2.0f * q3 * q3 + 1.0f) * 57.2957795f);
+	// Q_angle[0] = -asin(-2.0f * q1 * q3 + 2.0f * q0 * q2) * 57.2957795f;
+	// Q_angle[1] = atan2(2.0f * q2 * q3 + 2.0f * q0 * q1, -2.0f * q1 * q1 - 2.0f * q2 * q2 + 1.0f) * 57.2957795f;
+	// Q_angle[2] = -atan2(2.0f * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 57.2957795f;
+	Q_angle[0] = asin(-2.0f * q1 * q3 + 2.0f * q0 * q2) * 57.2957795f;
+	Q_angle[1] = atan2(2.0f * q2 * q3 + 2.0f * q0 * q1, -2.0f * q1 * q1 - 2.0f * q2 * q2 + 1.0f) * 57.2957795f;
+	Q_angle[2] = atan2(2.0f * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 57.2957795f;
 }
 
 float invSqrt(float x)
