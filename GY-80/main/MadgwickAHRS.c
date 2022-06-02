@@ -135,12 +135,12 @@ void MadgwickAHRSupdate(float gx, float gy, float gz, float ax, float ay, float 
 	q1 *= Norm;
 	q2 *= Norm;
 	q3 *= Norm;
-	// Q_angle[0] = -asin(-2.0f * q1 * q3 + 2.0f * q0 * q2) * 57.2957795f;
-	// Q_angle[1] = atan2(2.0f * q2 * q3 + 2.0f * q0 * q1, -2.0f * q1 * q1 - 2.0f * q2 * q2 + 1.0f) * 57.2957795f;
-	// Q_angle[2] = -atan2(2.0f * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 57.2957795f;
-	Q_angle[0] = asin(-2.0f * q1 * q3 + 2.0f * q0 * q2) * 57.2957795f;
+	Q_angle[0] = -asin(-2.0f * q1 * q3 + 2.0f * q0 * q2) * 57.2957795f;
 	Q_angle[1] = atan2(2.0f * q2 * q3 + 2.0f * q0 * q1, -2.0f * q1 * q1 - 2.0f * q2 * q2 + 1.0f) * 57.2957795f;
-	Q_angle[2] = atan2(2.0f * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 57.2957795f;
+	Q_angle[2] = -atan2(2.0f * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 57.2957795f;
+	// Q_angle[0] = asin(-2.0f * q1 * q3 + 2.0f * q0 * q2) * 57.2957795f;
+	// Q_angle[1] = atan2(2.0f * q2 * q3 + 2.0f * q0 * q1, -2.0f * q1 * q1 - 2.0f * q2 * q2 + 1.0f) * 57.2957795f;
+	// Q_angle[2] = atan2(2.0f * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 57.2957795f;
 	// printf("Roll: %f\n", atan2(2.0f * (q0 * q1 + q2 * q3), -2.0f * q1 * q1 - 2.0f * q2 * q2 + 1.0f) * 57.2957795f);
 	// printf("Pitch: %f\n", asin(2.0f * (q0 * q2 - q1 * q3)) * 57.2957795f);
 	// printf("Yaw: %f\n", atan2(2.0f * (q1 * q2 + q0 * q3), -2.0f * q2 * q2 -2.0f * q3 * q3 + 1.0f) * 57.2957795f);
@@ -217,12 +217,12 @@ void MadgwickAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, flo
 	q1 *= Norm;
 	q2 *= Norm;
 	q3 *= Norm;
-	// Q_angle[0] = -asin(-2.0f * q1 * q3 + 2.0f * q0 * q2) * 57.2957795f;
-	// Q_angle[1] = atan2(2.0f * q2 * q3 + 2.0f * q0 * q1, -2.0f * q1 * q1 - 2.0f * q2 * q2 + 1.0f) * 57.2957795f;
-	// Q_angle[2] = -atan2(2.0f * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 57.2957795f;
-	Q_angle[0] = asin(-2.0f * q1 * q3 + 2.0f * q0 * q2) * 57.2957795f;
+	Q_angle[0] = -asin(-2.0f * q1 * q3 + 2.0f * q0 * q2) * 57.2957795f;
 	Q_angle[1] = atan2(2.0f * q2 * q3 + 2.0f * q0 * q1, -2.0f * q1 * q1 - 2.0f * q2 * q2 + 1.0f) * 57.2957795f;
-	Q_angle[2] = atan2(2.0f * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 57.2957795f;
+	Q_angle[2] = -atan2(2.0f * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 57.2957795f;
+	// Q_angle[0] = asin(-2.0f * q1 * q3 + 2.0f * q0 * q2) * 57.2957795f;
+	// Q_angle[1] = atan2(2.0f * q2 * q3 + 2.0f * q0 * q1, -2.0f * q1 * q1 - 2.0f * q2 * q2 + 1.0f) * 57.2957795f;
+	// Q_angle[2] = atan2(2.0f * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 57.2957795f;
 }
 
 //---------------------------------------------------------------------------------------------------

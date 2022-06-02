@@ -13,6 +13,7 @@
 /***************************L3G4200D**********************************/
 
 int Init_L3G4200D(float *BUF_MARK);
+void L3G4200D_FIFO_READ(float *BUF_L3G4200D, float *BUF_MARK);
 void L3G4200D_READ(float *BUF_L3G4200D);
 void L3G4200D_READ_AVERAGE(float *BUF_L3G4200D, float *BUF_MARK, int times);
 

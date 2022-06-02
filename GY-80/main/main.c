@@ -18,9 +18,8 @@
 /******************************变量定义*********************************/
 typedef struct
 {
-    float yaw;
+
     // L3G4200D
-    //  int Init_L3G4200D; //初始化标志位
     float BUF_GYRO[3]; //三轴角速度
     float BUF_MARK[3];
     // HMC5883L
@@ -135,20 +134,20 @@ void Task_AHRS(void *parameter)
         // printf("当前时间为：%lld------------------------2\n", esp_timer_get_time());
         // printf("Kalman_Angle: X = %f, Y = %f, Z = %f\n",Data.Kalman_Angle[0] ,Data.Kalman_Angle[1] ,Data.Kalman_Angle[2]);
         // printf("三轴角速度为：X = %f, Y = %f, Z = %f\n", Data.BUF_GYRO[0], Data.BUF_GYRO[1],Data.BUF_GYRO[2]);
-        // IMU_AHRSupdate(Data.BUF_GYRO[0], Data.BUF_GYRO[1], Data.BUF_GYRO[2],
-        //                 Data.ACC_XYZ_G[0], Data.ACC_XYZ_G[1], Data.ACC_XYZ_G[2],
-        //                 Data.mag_XYZ[0], Data.mag_XYZ[1], Data.mag_XYZ[2], Q_angle);
+        IMU_AHRSupdate(Data.BUF_GYRO[0], Data.BUF_GYRO[1], Data.BUF_GYRO[2],
+                        Data.ACC_XYZ_G[0], Data.ACC_XYZ_G[1], Data.ACC_XYZ_G[2],
+                        Data.mag_XYZ[0], Data.mag_XYZ[1], Data.mag_XYZ[2], Q_angle);
         // AHRSupdate(Data.BUF_GYRO[0], Data.BUF_GYRO[1], Data.BUF_GYRO[2],
         //                 Data.ACC_XYZ_G[0], Data.ACC_XYZ_G[1], Data.ACC_XYZ_G[2],
         //                 Data.mag_XYZ[0], Data.mag_XYZ[1], Data.mag_XYZ[2], Q_angle);
         // MadgwickAHRSupdate(Data.BUF_GYRO[0], Data.BUF_GYRO[1], Data.BUF_GYRO[2],
         //                 Data.ACC_XYZ_G[0], Data.ACC_XYZ_G[1], Data.ACC_XYZ_G[2],
         //                 Data.mag_XYZ[0], Data.mag_XYZ[1], Data.mag_XYZ[2], Q_angle);
-        MadgwickAHRSupdateIMU(Data.BUF_GYRO[0], Data.BUF_GYRO[1], Data.BUF_GYRO[2],
-                            Data.ACC_XYZ_G[0], Data.ACC_XYZ_G[1], Data.ACC_XYZ_G[2], Q_angle);//有一定作用
+        // MadgwickAHRSupdateIMU(Data.BUF_GYRO[0], Data.BUF_GYRO[1], Data.BUF_GYRO[2],
+        //                     Data.ACC_XYZ_G[0], Data.ACC_XYZ_G[1], Data.ACC_XYZ_G[2], Q_angle);//有一定作用
         // MahonyAHRSupdate(Data.BUF_GYRO[0], Data.BUF_GYRO[1], Data.BUF_GYRO[2],
-        //                  Data.ACC_XYZ_G[0], Data.ACC_XYZ_G[1], Data.ACC_XYZ_G[2],
-                        //  Data.mag_XYZ[0], Data.mag_XYZ[1], Data.mag_XYZ[2], Q_angle);
+        //                     Data.ACC_XYZ_G[0], Data.ACC_XYZ_G[1], Data.ACC_XYZ_G[2],
+        //                     Data.mag_XYZ[0], Data.mag_XYZ[1], Data.mag_XYZ[2], Q_angle);
         // MahonyAHRSupdateIMU(Data.BUF_GYRO[0], Data.BUF_GYRO[1], Data.BUF_GYRO[2],
         //                     Data.ACC_XYZ_G[0], Data.ACC_XYZ_G[1], Data.ACC_XYZ_G[2], Q_angle);
         // printf("当前时间为：%lld------------------------4\n", esp_timer_get_time());
@@ -162,8 +161,8 @@ void Task_Show(void *parameter)
     
     while(1)
     {
-        printf("\nPitch: %f\n", Q_angle[0]);
-        printf("Roll: %f\n", Q_angle[1]);
+        printf("\nRoll: %f\n", Q_angle[0]);
+        printf("Pitch: %f\n", Q_angle[1]);
         printf("Yaw: %f\n", Q_angle[2]);
         printf("三轴角速度为：X = %f, Y = %f, Z = %f\n", Data.BUF_GYRO[0], Data.BUF_GYRO[1], Data.BUF_GYRO[2]);
         printf("三轴加速度为：Xg = %lf, Yg = %lf, Zg = %lf\n", Data.ACC_XYZ_G[0], Data.ACC_XYZ_G[1], Data.ACC_XYZ_G[2]);
@@ -189,9 +188,9 @@ void ADXL345_DATA(void)
     Data.ACC_XYZ_G[0] = (((float)Data.A_XYZ[0] * 3.9) / 1000) * 9.8;
     Data.ACC_XYZ_G[1] = (((float)Data.A_XYZ[1] * 3.9) / 1000) * 9.8;
     Data.ACC_XYZ_G[2] = (((float)Data.A_XYZ[2] * 3.9) / 1000) * 9.8;
-    Data.ACC_Angle[0] = ADXL345_Angle((float)Data.A_XYZ[0] * 3.9, (float)Data.A_XYZ[1] * 3.9, (float)Data.A_XYZ[2] * 3.9, 1);
-    Data.ACC_Angle[1] = ADXL345_Angle((float)Data.A_XYZ[0] * 3.9, (float)Data.A_XYZ[1] * 3.9, (float)Data.A_XYZ[2] * 3.9, 2);
-    Data.ACC_Angle[2] = ADXL345_Angle((float)Data.A_XYZ[0] * 3.9, (float)Data.A_XYZ[1] * 3.9, (float)Data.A_XYZ[2] * 3.9, 0);
+    Data.ACC_Angle[0] = ADXL345_Angle(Data.ACC_XYZ_G[0], Data.ACC_XYZ_G[1], Data.ACC_XYZ_G[2], 1);
+    Data.ACC_Angle[1] = ADXL345_Angle(Data.ACC_XYZ_G[0], Data.ACC_XYZ_G[1], Data.ACC_XYZ_G[2], 2);
+    Data.ACC_Angle[2] = ADXL345_Angle(Data.ACC_XYZ_G[0], Data.ACC_XYZ_G[1], Data.ACC_XYZ_G[2], 0);
     // Data.ACC_Angle[0] = kalmanCalculate(Data.ACC_Angle[0], Data.BUF_GYRO[0], 200);
     // Data.ACC_Angle[1] = kalmanCalculate(Data.ACC_Angle[1], Data.BUF_GYRO[1], 200);
     // Data.ACC_Angle[2] = kalmanCalculate(Data.ACC_Angle[2], Data.BUF_GYRO[2], 200);

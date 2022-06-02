@@ -22,7 +22,7 @@
 // Definitions
 
 #define sampleFreq	62.0f			// sample frequency in Hz
-#define twoKpDef	(2.0f * 2.0f)	// 2 * proportional gain
+#define twoKpDef	(2.0f * 1.0f)	// 2 * proportional gain
 #define twoKiDef	(2.0f * 0.005f)	// 2 * integral gain
 
 //---------------------------------------------------------------------------------------------------
@@ -143,12 +143,38 @@ void MahonyAHRSupdate(float gx, float gy, float gz, float ax, float ay, float az
 	q1 *= recipNorm;
 	q2 *= recipNorm;
 	q3 *= recipNorm;
+	//使用Z-Y-X顺规
+	float r20 = 2.0f * (q1 * q3 - q0 * q2);
+	if(r20 < 1){
+		if(20 > -1){
+			// X - φ
+			Q_angle[0] = atan2(2.0f * (q2 * q3 + q0 * q1), -2.0f * (q1 * q1 + q2 * q2) + 1.0f) * 57.2957795f;
+			// Y - θ
+			Q_angle[1] = asin(-2.0f * q1 * q3 + 2.0f * q0 * q2) * 57.2957795f; 
+			// Z - ψ
+			Q_angle[2] = atan2(2.0f * (q1 * q2 + q0 * q3), -2.0f * (q2 * q2 + q3 * q3) + 1.0f) * 57.2957795f;
+		}else{
+			// X - φ
+			Q_angle[0] = 0;
+			// Y - θ
+			Q_angle[1] = 90.00; 
+			// Z - ψ
+			Q_angle[2] = -atan2(2.0f * (q0 * q1 - q2 * q3), -2.0f * (q1 * q3 + q3 * q3) + 1.0f) * 57.2957795f;
+		}
+	}else{
+		// X - φ
+			Q_angle[0] = 0;
+			// Y - θ
+			Q_angle[1] = -90.00; 
+			// Z - ψ
+			Q_angle[2] = -atan2(2.0f * (q0 * q1 - q2 * q3), -2.0f * (q1 * q3 + q3 * q3) + 1.0f) * 57.2957795f;
+	}
 	// Q_angle[0] = -asin(-2.0f * q1 * q3 + 2.0f * q0 * q2) * 57.2957795f;
 	// Q_angle[1] = atan2(2.0f * q2 * q3 + 2.0f * q0 * q1, -2.0f * q1 * q1 - 2.0f * q2 * q2 + 1.0f) * 57.2957795f;
 	// Q_angle[2] = -atan2(2.0f * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 57.2957795f;
-	Q_angle[0] = asin(-2.0f * q1 * q3 + 2.0f * q0 * q2) * 57.2957795f;
-	Q_angle[1] = atan2(2.0f * q2 * q3 + 2.0f * q0 * q1, -2.0f * q1 * q1 - 2.0f * q2 * q2 + 1.0f) * 57.2957795f;
-	Q_angle[2] = atan2(2.0f * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 57.2957795f;
+	// Q_angle[0] = asin(-2.0f * q1 * q3 + 2.0f * q0 * q2) * 57.2957795f;
+	// Q_angle[1] = atan2(2.0f * q2 * q3 + 2.0f * q0 * q1, -2.0f * q1 * q1 - 2.0f * q2 * q2 + 1.0f) * 57.2957795f;
+	// Q_angle[2] = atan2(2.0f * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 57.2957795f;
 
 }
 
@@ -219,12 +245,12 @@ void MahonyAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, float
 	q1 *= recipNorm;
 	q2 *= recipNorm;
 	q3 *= recipNorm;
-	// Q_angle[0] = -asin(-2.0f * q1 * q3 + 2.0f * q0 * q2) * 57.2957795f;
-	// Q_angle[1] = atan2(2.0f * q2 * q3 + 2.0f * q0 * q1, -2.0f * q1 * q1 - 2.0f * q2 * q2 + 1.0f) * 57.2957795f;
-	// Q_angle[2] = -atan2(2.0f * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 57.2957795f;
-	Q_angle[0] = asin(-2.0f * q1 * q3 + 2.0f * q0 * q2) * 57.2957795f;
+	Q_angle[0] = -asin(-2.0f * q1 * q3 + 2.0f * q0 * q2) * 57.2957795f;
 	Q_angle[1] = atan2(2.0f * q2 * q3 + 2.0f * q0 * q1, -2.0f * q1 * q1 - 2.0f * q2 * q2 + 1.0f) * 57.2957795f;
-	Q_angle[2] = atan2(2.0f * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 57.2957795f;
+	Q_angle[2] = -atan2(2.0f * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 57.2957795f;
+	// Q_angle[0] = asin(-2.0f * q1 * q3 + 2.0f * q0 * q2) * 57.2957795f;
+	// Q_angle[1] = atan2(2.0f * q2 * q3 + 2.0f * q0 * q1, -2.0f * q1 * q1 - 2.0f * q2 * q2 + 1.0f) * 57.2957795f;
+	// Q_angle[2] = atan2(2.0f * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 57.2957795f;
 }
 
 //---------------------------------------------------------------------------------------------------

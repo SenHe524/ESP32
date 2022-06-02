@@ -20,6 +20,8 @@
 #define L3G4200_REFERENCE       0x25
 #define L3G4200_TEMP            0x26
 #define L3G4200_STATUS          0x27
+#define L3G4200_FIFO_CTRL       0x2E
+#define L3G4200_FIFO_SRC        0x2F
 /* -------HMC5883L Register names ------- */
 #define	HMC5883L_Addr   0x3C	//磁场传感器器件地址
 #define	HMC5883L_Configuration_Register_A       0x00
