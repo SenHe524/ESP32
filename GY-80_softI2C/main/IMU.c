@@ -68,7 +68,12 @@ void IMU_AHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, 
 	bx = sqrt((hx * hx) + (hy * hy)); //实质为误差函数，bx越接近hx，则估计姿态与电子罗盘测得姿态越接近
 	// by = sqrtf((hx*hx) + (hy*hy));
 	bz = hz;
-
+	// hx = 2.0f * mx * (0.5f - q2q2 - q3q3) + 2.0f * my * (q1q2 - q0q3) + 2.0f * mz * (q1q3 + q0q2);
+	// hy = 2.0f * mx * (q1q2 + q0q3) + 2.0f * my * (0.5f - q1q1 - q3q3) + 2.0f * mz * (q2q3 - q0q1);
+	// hz = 2.0f * mx * (q1q3 - q0q2) + 2.0f * my * (q2q3 + q0q1) + 2.0f * mz * (0.5f - q1q1 - q2q2);
+	// // bx = sqrt((hx * hx) + (hy * hy)); //实质为误差函数，bx越接近hx，则估计姿态与电子罗盘测得姿态越接近
+	// by = sqrtf((hx*hx) + (hy*hy));
+	// bz = hz;
 	/*
 	这是把四元数换算成《方向余弦矩阵》中的第三列的三个元素。
 	根据余弦矩阵和欧拉角的定义，地理坐标系的重力向量，转到机体坐标系，正好是这三个元素。
@@ -83,6 +88,9 @@ void IMU_AHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, 
 	wx = 2.0f * bx * (0.5f - q2q2 - q3q3) + 2.0f * bz * (q1q3 - q0q2);
 	wy = 2.0f * bx * (q1q2 - q0q3) + 2.0f * bz * (q0q1 + q2q3);
 	wz = 2.0f * bx * (q0q2 + q1q3) + 2.0f * bz * (0.5f - q1q1 - q2q2);
+	// wx = 2.0f * by * (q1q2 + q0q3) + 2.0f * bz * (q1q3 - q0q2);
+	// wy = 2.0f * by * (0.5f - q1q1 - q3q3) + 2.0f * bz * (q0q1 + q2q3);
+	// wz = 2.0f * by * (q2q3 - q0q1) + 2.0f * bz * (0.5f - q1q1 - q2q2);
 	// error is sum of cross product between reference direction of fields and direction measured by sensors
 	ex = (ay * vz - az * vy) + (my * wz - mz * wy);
 	ey = (az * vx - ax * vz) + (mz * wx - mx * wz);
@@ -135,6 +143,7 @@ void IMU_AHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, 
 			Q_angle[1] = asin(-2.0f * q1q3 + 2.0f * q0q2) * 57.2957795f; 
 			// Z - ψ
 			Q_angle[2] = atan2(2.0f * (q1q2 + q0q3), -2.0f * (q2q2 + q3q3) + 1.0f) * 57.2957795f;
+			// Q_angle[2] < 0? Q_angle[2] += 360 : 0;
 		}else{
 			// X - φ
 			Q_angle[0] = 0;

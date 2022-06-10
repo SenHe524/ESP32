@@ -7,7 +7,7 @@
 #include "driver/gpio.h"
 #include "sys/unistd.h"
 
-#include "I2C.h"
+#include "i2c_software.h"
 
 #define I2C_SCL 18
 #define I2C_SDA 19
@@ -207,4 +207,32 @@ uint8_t Single_Read(uint8_t SlaveAddress, uint8_t Read_Address)
     I2C_SendAck(1);
     I2C_Stop();
     return Data;
+}
+int Multiple_Read(uint8_t SlaveAddress, uint8_t Read_Address, uint8_t *Data_temp, uint8_t Len)
+{
+    I2C_Start();
+    I2C_SendByte(SlaveAddress); //发送从机写地址
+    if (I2C_ReceiveAck())
+    {
+        I2C_Stop();
+        printf("I'm Here!--------No Ack!\n");
+        return 0;
+    }
+    I2C_SendByte(Read_Address); //要读取的地址
+    I2C_ReceiveAck();
+
+    I2C_Start();
+    I2C_SendByte(SlaveAddress + 1); //发送从机读地址
+    I2C_ReceiveAck();
+    for(int i = 0; i < Len - 1; i++)
+    {
+
+        Data_temp[i] = I2C_ReceiveByte();
+        I2C_SendAck(0);
+    }
+    Data_temp[Len - 1] = I2C_ReceiveByte();
+    I2C_SendAck(1);
+
+    I2C_Stop();
+    return 1;
 }

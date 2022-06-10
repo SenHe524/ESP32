@@ -17,5 +17,5 @@ int Single_Write(uint8_t SlaveAddress, uint8_t Write_Address, uint8_t Data);
 
 uint8_t Single_Read(uint8_t SlaveAddress, uint8_t Read_Address);
 
-
+int Multiple_Read(uint8_t SlaveAddress, uint8_t Read_Address, uint8_t *Data_temp, uint8_t Len);
 #endif
