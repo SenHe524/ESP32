@@ -19,6 +19,9 @@ typedef struct
 {
     // L3G4200D
     float Buf_Gyro[3]; //三轴角速度
+    // ADXL345
+    float ACC_Angle[3]; //三轴偏转角
+    float ACC_Gavity[3]; //三轴加速度
     // HMC5883L
     float mag_XYZ[3];        //合成的原始XYZ三轴数据
     float mag_Angle[3];      //计算出的三个平面偏角
@@ -29,17 +32,11 @@ typedef struct
     unsigned short AC_456[3];
     short B1_MD[5];
     long temperature, pressure;
-    // ADXL345
-    float ACC_Angle[3]; //三轴偏转角
-    float ACC_Gavity[3]; //三轴加速度
-    float Kalman_Angle[3];
+    
+
 } AHRS_DATA_t;
 
-AHRS_DATA_t Data = {
-    .Kalman_Angle[0] = 0,
-    .Kalman_Angle[1] = 0,
-    .Kalman_Angle[2] = 0,
-};
+AHRS_DATA_t Data;
 
 typedef struct
 {
@@ -163,7 +160,7 @@ void L3G4200D_Data_Update(void)
 }
 void ADXL345_Data_Update(void)
 {
-    ADXL345_Read_Average(Data.ACC_Gavity, 5);
+    ADXL345_Fifo_Read(Data.ACC_Gavity, 16);
     Data.ACC_Angle[0] = ADXL345_Angle(Data.ACC_Gavity, 1);
     Data.ACC_Angle[1] = ADXL345_Angle(Data.ACC_Gavity, 2);
     Data.ACC_Angle[2] = ADXL345_Angle(Data.ACC_Gavity, 0);

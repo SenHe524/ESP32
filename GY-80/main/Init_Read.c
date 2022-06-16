@@ -11,17 +11,15 @@
 #include "i2c_hardware.h"
 #include "Register.h"
 #include "Init_Read.h"
-#include "i2c_software.h"
-#define N 10  
-#define OSS 0 // BMP085 使用
 
+#define OSS 3 // BMP085 使用
 /***************************L3G4200D**********************************/
 /**
- * @brief   初始化角速度传感器L3G4200D
- * @param  BUF_MARK 用于改善零漂的补偿数组
+ * @brief           初始化角速度传感器L3G4200D
+ * @param   无
  * @return
- *          1：初始化成功
- *          0：初始化失败
+ *                  1：初始化成功
+ *                  0：初始化失败
  */
 int Init_L3G4200D(void)
 {
@@ -43,10 +41,8 @@ int Init_L3G4200D(void)
 }
 
 /**
- * @brief   单次读取L3G4200D的数据
- * @param   BUF_L3G4200D 用于存储本次读取到的数据的数组
- * @return
- *          无
+ * @brief                   单次读取L3G4200D的数据
+ * @param   BUF_L3G4200D    用于存储本次读取到的数据的数组
  */
 void L3G4200D_Read(float *BUF_L3G4200D)
 {
@@ -72,18 +68,12 @@ void L3G4200D_Read(float *BUF_L3G4200D)
         BUF_L3G4200D[0] = (float)T_X * 0.07;
         BUF_L3G4200D[1] = (float)T_Y * 0.07;
         BUF_L3G4200D[2] = (float)T_Z * 0.07;
-        // printf("%f, %f, %f----------------------------------------------------------L3G4200D------------1\n", BUF_L3G4200D[0], BUF_L3G4200D[1], BUF_L3G4200D[2]);
-        // printf("%d, %d, %d,%d, %d, %d----------------------------------------------------------L3G4200D----------------2\n", BUF[0], BUF[1], BUF[2],BUF[3], BUF[4], BUF[5]);
 }
 
 /**
- * @brief   多次读取L3G4200D的数据
- * @param   BUF_L3G4200D 用于存储最终数据的数组
- * @param   BUF_MARK 用于改善零漂的补偿数组
- * @param   times 读取次数：times*10
- * @return
- *          1：读取成功
- *          0：读取失败
+ * @brief                   多次读取L3G4200D的数据
+ * @param   BUF_L3G4200D    用于存储最终数据的数组
+ * @param   times           读取次数：times
  */
 void L3G4200D_Read_Average(float *BUF_L3G4200D, int times)
 {
@@ -96,19 +86,19 @@ void L3G4200D_Read_Average(float *BUF_L3G4200D, int times)
         BUF[1] += BUF_TEMP[1];
         BUF[2] += BUF_TEMP[2];
     }
-    BUF_L3G4200D[0] = BUF[0] / times ;//- BUF_MARK[0]
-    BUF_L3G4200D[1] = BUF[1] / times ;//- BUF_MARK[1]
-    BUF_L3G4200D[2] = BUF[2] / times ;//- BUF_MARK[2]
+    BUF_L3G4200D[0] = BUF[0] / times ;
+    BUF_L3G4200D[1] = BUF[1] / times ;
+    BUF_L3G4200D[2] = BUF[2] / times ;
 
 }
 
 /****************************ADXL345**************************************/
 /**
- * @brief   初始化加速度传感器ADXL345
+ * @brief       初始化加速度传感器ADXL345
  * @param   无
  * @return
- *          1：初始化成功
- *          0：初始化失败
+ *              1：初始化成功
+ *              0：初始化失败
  */
 int Init_ADXL345(void)
 {
@@ -119,31 +109,29 @@ int Init_ADXL345(void)
     //以下配置ADXL345的寄存器，见PDF22页
     //关闭中断
     Single_Write_hardware(ADXL345_Addr, ADXL345_INT_ENABLE, 0x00);
-    //全分辨率模式 测量范围,正负16g，13位模式，详见中文手册25-26页
+    //全分辨率模式 测量范围,正负4g，13位模式，详见中文手册25-26页
     Single_Write_hardware(ADXL345_Addr, ADXL345_DATA_FORMAT, 0x09);
-    //设置功率模式：正常功率，数据速率设定为400hz  参考pdf24 13页
+    //设置功率模式：正常功率，数据速率设定为800hz  参考pdf24 13页
     Single_Write_hardware(ADXL345_Addr, ADXL345_BW_RATE, 0x0D);
     //选择电源模式为测量模式   参考pdf24页
     Single_Write_hardware(ADXL345_Addr, ADXL345_POWER_CTL, 0x08);
-    //设置FIFO模式:FIFO模式，样本位：4
-    Single_Write_hardware(ADXL345_Addr, ADXL345_FIFO_CTL, 0x46);//01 0 00100   01 0 10000
-    //使能 DATA_READY 中断
-    Single_Write_hardware(ADXL345_Addr, ADXL345_INT_ENABLE, 0x82);
+    //设置FIFO模式:FIFO模式，样本位：31
+    Single_Write_hardware(ADXL345_Addr, ADXL345_FIFO_CTL, 0x9F);
     return 1;
 }
 
 /**
- * @brief   加速度传感器ADXL345自校准
+ * @brief       加速度传感器ADXL345自校准
  * @param   无
  * @return
- *          1：校准成功
- *          0：校准失败
+ *              1：校准成功
+ *              0：校准失败
  */
 int ADXL345_Auto_Adjust(void)
 {
-    int temp_buf[3] = {0};
-    int temp_x_2 = 0, temp_y_2 = 0, temp_z_2 = 0;
-    int offx = 0, offy = 0, offz = 0;
+    short temp_buf[3] = {0};
+    short temp_x_2 = 0, temp_y_2 = 0, temp_z_2 = 0;
+    short offx = 0, offy = 0, offz = 0;
 
     //读取ADXL345的器件ID 判断是否为ADXL345的默认值：0xE5
     if (Single_Read_hardware(ADXL345_Addr, ADXL345_DEVID) != 0xE5)
@@ -154,10 +142,8 @@ int ADXL345_Auto_Adjust(void)
     Single_Write_hardware(ADXL345_Addr, ADXL345_POWER_CTL, 0x00);
     ets_delay_us(100 * 1000);
 
-    //低电平中断输出,13位全分辨率,输出数据右对齐,16g量程
+    //高电平中断输出,13位全分辨率,输出数据右对齐,4g量程
     Single_Write_hardware(ADXL345_Addr, ADXL345_DATA_FORMAT, 0X09);
-    //数据输出速度为100Hz
-    Single_Write_hardware(ADXL345_Addr, ADXL345_BW_RATE, 0x0A);
     //链接使能,测量模式
     Single_Write_hardware(ADXL345_Addr, ADXL345_POWER_CTL, 0x28);
     //关闭中断
@@ -197,90 +183,79 @@ int ADXL345_Auto_Adjust(void)
 }
 
 /**
- * @brief   读取加速度传感器ADXL345一次
- * @param   X x轴数据
- * @param   Y y轴数据
- * @param   Z z轴数据
- * @return
- *          无
+ * @brief           读取加速度传感器ADXL345一次
+ * @param   Buf     三轴原始数据
  */
-void ADXL345_Read(int *Buf)
+void ADXL345_Read(short *Buf)
 {
     uint8_t BUF_ADXL345[6];
     Multiple_Read_Hardware(ADXL345_Addr, ADXL345_DATAX0, BUF_ADXL345, 6);
-    Buf[0] = (BUF_ADXL345[1] << 8) + BUF_ADXL345[0]; //合成数据
-    Buf[1] = (BUF_ADXL345[3] << 8) + BUF_ADXL345[2]; //合成数据
-    Buf[2] = (BUF_ADXL345[5] << 8) + BUF_ADXL345[4]; //合成数据
-    // printf("%d, %d, %d, %d, %d, %d--------ADXL345----\n", BUF_ADXL345[0], BUF_ADXL345[1], BUF_ADXL345[2] ,BUF_ADXL345[3], BUF_ADXL345[4], BUF_ADXL345[5]);
-    if (Buf[0] > 0x7FFF)
-        Buf[0] -= 0xFFFF;
-    if (Buf[1] > 0x7FFF)
-        Buf[1] -= 0xFFFF;
-    if (Buf[2] > 0x7FFF)
-        Buf[2] -= 0xFFFF;
-    // printf("%d, %d, %d-----ADXL345------\n", Buf[0], Buf[1], Buf[2]);
+    Buf[0] = (short)(((uint16_t)BUF_ADXL345[1] << 8) + BUF_ADXL345[0]); //合成数据
+    Buf[1] = (short)(((uint16_t)BUF_ADXL345[3] << 8) + BUF_ADXL345[2]); //合成数据
+    Buf[2] = (short)(((uint16_t)BUF_ADXL345[5] << 8) + BUF_ADXL345[4]); //合成数据
+
 }
 
 /**
- * @brief   读取加速度传感器ADXL345多次
- * @param   X x轴数据
- * @param   Y y轴数据
- * @param   Z z轴数据
- * @param   times 读取 times * 10次
- * @return
- *          无
+ * @brief           FIFO读取ADXL345加速度传感器
+ * 
+ * @param Buf       三轴原始数据
+ * @param times     读取多少次
+ */
+void ADXL345_Fifo_Read(float *Buf, int times)
+{
+    uint8_t BUF_ADXL345[6];
+    short Buf_temp[6] = {0};
+    short Buf_temp1[3] = {0};
+    for(int i = 0; i < times; i++)
+    {
+        Multiple_Read_Hardware(ADXL345_Addr, ADXL345_DATAX0, BUF_ADXL345, 6);
+        for(int i = 0; i < 6; i++)
+        {
+            Buf_temp[i] += BUF_ADXL345[i];
+        }
+    }
+    //此处times应取多少，Buf_temp1中的值右移多少位，参考网页：https://www.analog.com/en/design-center/interactive-design-tools/accelerometer-fifo-calculator.html
+    Buf_temp1[0] = (short)(((uint16_t)Buf_temp[1] << 8) + Buf_temp[0]) >> 2; //合成数据
+    Buf_temp1[1] = (short)(((uint16_t)Buf_temp[3] << 8) + Buf_temp[2]) >> 2; //合成数据
+    Buf_temp1[2] = (short)(((uint16_t)Buf_temp[5] << 8) + Buf_temp[4]) >> 2; //合成数据
+    Buf[0] = ((float)Buf_temp1[0] * 9.8) / 1000.0;
+    Buf[1] = ((float)Buf_temp1[1] * 9.8) / 1000.0;
+    Buf[2] = ((float)Buf_temp1[2] * 9.8) / 1000.0;
+
+}
+/**
+ * @brief           多次读取ADXL345传感器，并对三轴原始数据取平均
+ * 
+ * @param Buf       平均后的三轴原始数据
+ * @param times     读取多少次取平均
  */
 void ADXL345_Read_Average(float *Buf, int times)
 {
-    int temp_buf[3] = {0};
-    int temp_x_2 = 0, temp_y_2 = 0, temp_z_2 = 0;
-
-    // uint8_t temp1 = Single_Read_hardware(ADXL345_Addr, ADXL345_FIFO_STATUS);
-    // uint8_t temp2 = Single_Read_hardware(ADXL345_Addr, ADXL345_INT_SOURCE);
-    // printf("ADXL345_FIFO_STATUS = %x, %d--------%x,%d\n",temp1,temp1, temp2, temp2);
-    if((Single_Read_hardware(ADXL345_Addr, ADXL345_INT_SOURCE) & 0x02) == 0x02){
-    // if((Single_Read_hardware(ADXL345_Addr, ADXL345_INT_SOURCE) & 0x02) == 0x02){
-        for(int i = 0; i < times; i++)
-        {
-                ADXL345_Read(temp_buf);
-                temp_x_2 += temp_buf[0];
-                temp_y_2 += temp_buf[1];
-                temp_z_2 += temp_buf[2];
-        }
-         Buf[0] = (((float)temp_x_2 / times) * 3.9 * 9.8) / 1000.0;
-        Buf[1] = (((float)temp_y_2 / times) * 3.9 * 9.8) / 1000.0;
-        Buf[2] = (((float)temp_z_2 / times) * 3.9 * 9.8) / 1000.0;
+    short temp_buf[3] = {0};
+    short temp_x = 0, temp_y = 0, temp_z = 0;
+    for (int i = 0; i < times; i++)
+    {
+        ADXL345_Read(temp_buf);
+        temp_x += temp_buf[0];
+        temp_y += temp_buf[1];
+        temp_z += temp_buf[2];
     }
-    else{
-        printf("ADXL345 FIFO READ ERROR!\n");
-    }
-
-
-    // for (int i = 0; i < times; i++)
-    // {
-    //     ADXL345_Read(temp_buf);
-    //     temp_x_2 += temp_buf[0];
-    //     temp_y_2 += temp_buf[1];
-    //     temp_z_2 += temp_buf[2];
-    // }
-    // Buf[0] = (((float)temp_x_2 / times) * 3.9 * 9.8) / 1000.0;
-    // Buf[1] = (((float)temp_y_2 / times) * 3.9 * 9.8) / 1000.0;
-    // Buf[2] = (((float)temp_z_2 / times) * 3.9 * 9.8) / 1000.0;
-
+    Buf[0] = (((float)temp_x / times) * 3.9 * 9.8) / 1000.0;
+    Buf[1] = (((float)temp_y / times) * 3.9 * 9.8) / 1000.0;
+    Buf[2] = (((float)temp_z / times) * 3.9 * 9.8) / 1000.0;
+    
 }
 
 /**
- * @brief   计算偏角
- * @param   A_X x轴数据
- * @param   A_Y y轴数据
- * @param   A_Z z轴数据
- * @param   i
- *          0： Z轴角度
- *          1： x轴角度
- *          2： y轴角度
- *
- * @return
- *          res：计算出来的偏角
+ * @brief       由ADXL345加速度数据计算偏角
+ * 
+ * @param Buf   三轴原始数据
+ * @param i 
+ *              0：与自然Z轴的角度
+ *              1：与自然X轴的角度
+ *              2：与自然Y轴的角度
+ *  * @return float 偏角
  */
 float ADXL345_Angle(float *Buf, int i)
 {
@@ -308,9 +283,7 @@ float ADXL345_Angle(float *Buf, int i)
 /**
  * @brief   初始化磁场传感器HMC5883L
  * @param   无
- * @return
- *          1：初始化成功
- *          0：初始化失败
+ * @return  无
  */
 void Init_HMC5883L(void)
 {
@@ -321,15 +294,14 @@ void Init_HMC5883L(void)
     Single_Write_hardware(HMC5883L_Addr, HMC5883L_Mode_Register, 0x00);
 }
 
+
+// void HMC5883L_Raw_Read(float *Angle, float *mag_XYZ)
 /**
- * @brief   磁场传感器HMC5883L数据读取
- * @param   BUF 存储原始数据的数组
- * @param   Angle 计算出来的磁场角
- * @return
- *          无
+ * @brief           读取HMC5883L原始数据
+ * 
+ * @param mag_XYZ   HMC5883L的三轴原始数据
  */
-// void HMC5883L_RAW_READ(uint8_t *BUF, float *mag_XYZ);
-void HMC5883L_Raw_Read(float *Angle, float *mag_XYZ)
+void HMC5883L_Raw_Read(float *mag_XYZ)
 {
     uint8_t BUF[6] = {0};
     if ((Single_Read_hardware(HMC5883L_Addr, HMC5883L_Status_Register) & 0x01) == 0x01)
@@ -344,76 +316,81 @@ void HMC5883L_Raw_Read(float *Angle, float *mag_XYZ)
             mag_XYZ[2] -= 0xFFFF;
         if (mag_XYZ[1] > 0x7FFF)
             mag_XYZ[1] -= 0xFFFF;
+        mag_XYZ[0] /= 1090;
+        mag_XYZ[1] /= 1090;
+        mag_XYZ[2] /= 1090;
         // printf("%f, %f, %f\n", mag_XYZ[0], mag_XYZ[1], mag_XYZ[2]);
-        Angle[0] = atan2(mag_XYZ[1], mag_XYZ[0]) * (180 / 3.14159265) + 180; //计算XY平面角度
-        Angle[1] = atan2(mag_XYZ[2], mag_XYZ[0]) * (180 / 3.14159265) + 180; //计算XZ平面角度
-        Angle[2] = atan2(mag_XYZ[2], mag_XYZ[1]) * (180 / 3.14159265) + 180; //计算YZ平面角度
+        // Angle[0] = atan2(mag_XYZ[1], mag_XYZ[0]) * (180 / 3.14159265) + 180; //计算XY平面角度
+        // Angle[1] = atan2(mag_XYZ[2], mag_XYZ[0]) * (180 / 3.14159265) + 180; //计算XZ平面角度
+        // Angle[2] = atan2(mag_XYZ[2], mag_XYZ[1]) * (180 / 3.14159265) + 180; //计算YZ平面角度
 
     }
-
 }
-// void HMC5883L_SELFTEST(float *Offset, float *K_XYZ)
-// {
-//     float buf[6];
-//     float xyz[3];
-//     float GaXmax = 0, GaXmin = 0, GaYmax = 0, GaYmin = 0, GaZmax = 0, GaZmin = 0;
-//     printf("Start HMC5883L Selftest!!!!!!\n");
-//     Single_Write(HMC5883L_Addr,HMC5883L_Configuration_Register_A,0x71);
-//     Single_Write(HMC5883L_Addr,HMC5883L_Configuration_Register_B,0x60);
-//     Single_Write(HMC5883L_Addr,HMC5883L_Mode_Register,0x00);
-//     vTaskDelay(6 / portTICK_RATE_MS);
-//     for(int i = 0; i < 100; i++)
-//     {
-//         HMC5883L_RAW_READ(buf, xyz);
-//         GaXmax = GaXmax < xyz[0]? xyz[0]:GaXmax;
-// 		GaXmin = GaXmin > xyz[0]? xyz[0]:GaXmin;
-// 		GaYmax = GaYmax < xyz[1]? xyz[1]:GaYmax;
-// 		GaYmin = GaYmin > xyz[1]? xyz[1]:GaYmin;
-//         GaZmax = GaZmax < xyz[2]? xyz[2]:GaZmax;
-// 		GaZmin = GaZmin > xyz[2]? xyz[2]:GaZmin;
-//         ets_delay_us(10000);
-//         printf(".");
-//     }
-//     printf("%f, %f, %f, %f, %f, %f\n",GaXmax, GaXmin, GaYmax, GaYmin, GaZmax, GaZmin);
-//     printf("\nHMC5883L Selftest End!!!!!!\n");
-//     Offset[0] = (GaXmax+GaXmin)/2;
-//     Offset[1] = (GaYmax+GaYmin)/2;
-//     Offset[2] = (GaZmax+GaZmin)/2;
-//     K_XYZ[0] = 2 / (GaXmax-GaXmin);
-//     K_XYZ[1] = 2 / (GaYmax-GaYmin);
-//     K_XYZ[2] = 2 / (GaZmax-GaZmin);
-//     printf("%f, %f, %f, %f, %f, %f\n",Offset[0], Offset[1], Offset[2], K_XYZ[0], K_XYZ[1], K_XYZ[2]);
-// }
-// void HMC5883L_READ(uint8_t *BUF, float *Angle, float *mag_XYZ, float *Offset, float *K_XYZ)
-// {
-//     float rawGaXYZ[3];
-//     uint8_t BUF_TEMP[3];
-//     HMC5883L_RAW_READ(BUF_TEMP, rawGaXYZ);
-//     mag_XYZ[0] = (rawGaXYZ[0] - Offset[0]) * K_XYZ[0];
-//     mag_XYZ[1] = (rawGaXYZ[1] - Offset[1]) * K_XYZ[1];
-//     mag_XYZ[2] = (rawGaXYZ[2] - Offset[2]) * K_XYZ[2];
-//     printf("%f, %f, %f\n",mag_XYZ[0], mag_XYZ[1], mag_XYZ[2]);
-//     Angle[0]= atan2(mag_XYZ[1],mag_XYZ[0]) * (180 / 3.14159265) + 180; // angle in degrees
-//     Angle[1]= atan2(mag_XYZ[2],mag_XYZ[0]) * (180 / 3.14159265) + 180; // angle in degrees
-//     Angle[2]= atan2(mag_XYZ[2],mag_XYZ[1]) * (180 / 3.14159265) + 180; // angle in degrees
-//     mag_XYZ[0] = (mag_XYZ[0] * 1.52) / 1000;
-//     mag_XYZ[1] = (mag_XYZ[1] * 1.52) / 1000;
-//     mag_XYZ[2] = (mag_XYZ[2] * 1.52) / 1000;
-//     printf("%f, %f, %f\n",mag_XYZ[0], mag_XYZ[1], mag_XYZ[2]);
-// }
+
+/**
+ * @brief           HMC5883L自测校准
+ * 
+ * @param Offset    偏置
+ * @param K_XYZ     比例系数
+ */
+void HMC5883L_SELFTEST(float *Offset, float *K_XYZ)
+{
+    float xyz[3];
+    float GaXmax = 0, GaXmin = 0, GaYmax = 0, GaYmin = 0, GaZmax = 0, GaZmin = 0;
+    printf("Start HMC5883L Selftest!!!!!!\n");
+    vTaskDelay(3000 / portTICK_RATE_MS);
+    for(int i = 0; i < 100; i++)
+    {
+        HMC5883L_Raw_Read(xyz);
+        GaXmax = GaXmax < xyz[0]? xyz[0]:GaXmax;
+		GaXmin = GaXmin > xyz[0]? xyz[0]:GaXmin;
+		GaYmax = GaYmax < xyz[1]? xyz[1]:GaYmax;
+		GaYmin = GaYmin > xyz[1]? xyz[1]:GaYmin;
+        GaZmax = GaZmax < xyz[2]? xyz[2]:GaZmax;
+		GaZmin = GaZmin > xyz[2]? xyz[2]:GaZmin;
+        ets_delay_us(50000);
+        printf(".");
+    }
+    printf("%f, %f, %f, %f, %f, %f\n",GaXmax, GaXmin, GaYmax, GaYmin, GaZmax, GaZmin);
+    printf("\nHMC5883L Selftest End!!!!!!\n");
+    Offset[0] = (GaXmax+GaXmin)/2;
+    Offset[1] = (GaYmax+GaYmin)/2;
+    Offset[2] = (GaZmax+GaZmin)/2;
+    K_XYZ[0] = 2 / (GaXmax-GaXmin);
+    K_XYZ[1] = 2 / (GaYmax-GaYmin);
+    K_XYZ[2] = 2 / (GaZmax-GaZmin);
+    printf("%f, %f, %f, %f, %f, %f\n",Offset[0], Offset[1], Offset[2], K_XYZ[0], K_XYZ[1], K_XYZ[2]);
+}
+
+/**
+ * @brief           HMC5883L数据读取
+ * 
+ * @param Angle     存储三轴偏角
+ * @param mag_XYZ   存储三轴原始数据
+ * @param Offset    用于校准的数据
+ * @param K_XYZ     用于校准的数据
+ */
+void HMC5883L_READ(float *Angle, float *mag_XYZ, float *Offset, float *K_XYZ)
+{
+    float rawGaXYZ[3];
+    HMC5883L_Raw_Read(rawGaXYZ);
+    mag_XYZ[0] = (rawGaXYZ[0] - Offset[0]) * K_XYZ[0];
+    mag_XYZ[1] = (rawGaXYZ[1] - Offset[1]) * K_XYZ[1];
+    mag_XYZ[2] = (rawGaXYZ[2] - Offset[2]) * K_XYZ[2];
+    // printf("%f, %f, %f\n",mag_XYZ[0], mag_XYZ[1], mag_XYZ[2]);
+    Angle[0]= atan2(mag_XYZ[1],mag_XYZ[0]) * (180 / 3.14159265) + 180; // angle in degrees
+    Angle[1]= atan2(mag_XYZ[2],mag_XYZ[0]) * (180 / 3.14159265) + 180; // angle in degrees
+    Angle[2]= atan2(mag_XYZ[2],mag_XYZ[1]) * (180 / 3.14159265) + 180; // angle in degrees
+    // printf("%f, %f, %f\n",mag_XYZ[0], mag_XYZ[1], mag_XYZ[2]);
+}
 
 /***************************BMP085**********************************/
 
 /**
- * @brief   初始化用于辅助计算温度、气压值的参数值数组
- * @param   AC_123
- * @param   AC_456
- * @param   B1_MD
- * @param
- *          无
- *
- * @return
- *          res：计算出来的偏角
+ * @brief           初始化用于辅助计算温度、气压值的参数值数组
+ * @param   AC_123  存储用于校准的基础数据
+ * @param   AC_456  存储用于校准的基础数据
+ * @param   B1_MD   存储用于校准的基础数据
  */
 void Init_BMP085(short *AC_123, unsigned short *AC_456, short *B1_MD)
 {
@@ -452,11 +429,8 @@ void Init_BMP085(short *AC_123, unsigned short *AC_456, short *B1_MD)
 }
 
 /**
- * @brief   磁场传感器HMC5883L温度数据读取
- * @param   temperature_temp 存储原始温度数据
- * @return
- *          1：读取成功
- *          0：读取失败
+ * @brief                       磁场传感器HMC5883L温度数据读取
+ * @param   temperature_temp    存储原始温度数据
  */
 void BMP085_Read_Temperature(long *temperature_temp)
 {
@@ -468,33 +442,31 @@ void BMP085_Read_Temperature(long *temperature_temp)
 }
 
 /**
- * @brief   磁场传感器HMC5883L气压数据读取
- * @param   pressure_temp 存储原始气压数据
- * @return
- *          1：读取成功
- *          0：读取失败
+ * @brief                   磁场传感器HMC5883L气压数据读取
+ * @param   pressure_temp   存储原始气压数据
  */
 void BMP085_Read_Pressure(long *pressure_temp)
 {
-    Single_Write_hardware(BMP085_Addr, BMP085_DATA_ADDR, 0xF4);
+    long temp[3] = {0};
+    Single_Write_hardware(BMP085_Addr, BMP085_DATA_ADDR, BMP085_PRESSURE + (OSS << 6));
     ets_delay_us(26 * 1000); //延时26ms(>25.5ms)等待BMP085准备数据
-    *pressure_temp = Single_Read_hardware(BMP085_Addr, BMP085_DATA_MSB);
-    *pressure_temp = ((*pressure_temp) << 8) | Single_Read_hardware(BMP085_Addr, BMP085_DATA_LSB);
-    *pressure_temp &= 0x0000FFFF;
+    temp[0] = Single_Read_hardware(BMP085_Addr, BMP085_DATA_MSB);
+    temp[1] = Single_Read_hardware(BMP085_Addr, BMP085_DATA_LSB);
+    temp[2] = Single_Read_hardware(BMP085_Addr, BMP085_DATA_XLSB);
+    *pressure_temp = ((temp[0] << 16) | (temp[1] << 8) | temp[2]) >> (8 - OSS);
+    *pressure_temp &= 0x0007FFFF;//将19位以后都置0
+    // printf("%ld, %ld, %ld-------------%ld\n", temp[0], temp[1], temp[2], *pressure_temp);
 
 }
 
 /**
- * @brief   磁场传感器HMC5883L温度、气压数据计算
- * @param   temperature_temp 存储原始温度数据
- * @param   pressure_temp 存储原始气压数据
- * @return
- *          1：计算成功
- *          0：计算失败
+ * @brief                       磁场传感器HMC5883L温度、气压数据计算
+ * @param   temperature_temp    存储温度数据
+ * @param   pressure_temp       存储气压数据
  */
 void BMP085_Data_Calculate(long *temperature_temp, long *pressure_temp, short *AC_123, unsigned short *AC_456, short *B1_MD)
 {
-    long ut, up;
+    long ut, up = 0;
     long x1, x2, b5, b6, x3, b3, p;
     unsigned long b4, b7;
 
@@ -512,7 +484,7 @@ void BMP085_Data_Calculate(long *temperature_temp, long *pressure_temp, short *A
     x1 = (B1_MD[1] * (b6 * b6 >> 12)) >> 11;
     x2 = AC_123[1] * b6 >> 11;
     x3 = x1 + x2;
-    b3 = (((long)AC_123[0] * 4 + x3) + 2) / 4;
+    b3 = ((((long)AC_123[0] * 4 + x3) << OSS) + 2) / 4;
     x1 = AC_123[2] * b6 >> 13;
     x2 = (B1_MD[0] * (b6 * b6 >> 12)) >> 16;
     x3 = ((x1 + x2) + 2) >> 2;

@@ -138,18 +138,17 @@ int Init_ADXL345(void)
     //关闭中断
     if (!Single_Write(ADXL345_Addr, ADXL345_INT_ENABLE, 0x00))
         return 0;
-    //设置功率模式：正常功率，数据速率设定为400hz  参考pdf24 13页
-    if (!Single_Write(ADXL345_Addr, ADXL345_BW_RATE, 0x0C))
+    //设置功率模式：正常功率，数据速率设定为800hz  参考pdf24 13页
+    if (!Single_Write(ADXL345_Addr, ADXL345_BW_RATE, 0x0D))
         return 0;
     //全分辨率模式 测量范围,正负16g，13位模式，详见中文手册25-26页
-    if (!Single_Write(ADXL345_Addr, ADXL345_DATA_FORMAT, 0x0A))
+    if (!Single_Write(ADXL345_Addr, ADXL345_DATA_FORMAT, 0x09))
         return 0;
-    
+    //设置FIFO模式:流模式，样本位：31
+    if (!Single_Write(ADXL345_Addr, ADXL345_FIFO_CTL, 0x9F))
+        return 0;
     //选择电源模式为测量模式   参考pdf24页
     if (!Single_Write(ADXL345_Addr, ADXL345_POWER_CTL, 0x08))
-        return 0;
-    //使能 DATA_READY 中断
-    if (!Single_Write(ADXL345_Addr, ADXL345_INT_ENABLE, 0x82))
         return 0;
     return 1;
 }
@@ -164,9 +163,9 @@ int Init_ADXL345(void)
  */
 int ADXL345_Auto_Adjust(void)
 {
-    int temp_buf[3] = {0};
-    int temp_x_2 = 0, temp_y_2 = 0, temp_z_2 = 0;
-    int offx = 0, offy = 0, offz = 0;
+    short temp_buf[3] = {0};
+    short temp_x = 0, temp_y = 0, temp_z = 0;
+    short offx = 0, offy = 0, offz = 0;
 
     //读取ADXL345的器件ID 判断是否为ADXL345的默认值：0xE5
     if (Single_Read(ADXL345_Addr, ADXL345_DEVID) != 0xE5)
@@ -175,11 +174,8 @@ int ADXL345_Auto_Adjust(void)
     if (!Single_Write(ADXL345_Addr, ADXL345_POWER_CTL, 0x00))
         return 0;
     ets_delay_us(100 * 1000);
-    //低电平中断输出,13位全分辨率,输出数据右对齐,16g量程
-    if (!Single_Write(ADXL345_Addr, ADXL345_DATA_FORMAT, 0X2B))
-        return 0;
-    //数据输出速度为100Hz
-    if (!Single_Write(ADXL345_Addr, ADXL345_BW_RATE, 0x0C))
+    //高电平中断输出,13位全分辨率,输出数据右对齐,16g量程
+    if (!Single_Write(ADXL345_Addr, ADXL345_DATA_FORMAT, 0X09))
         return 0;
     //链接使能,测量模式
     if (!Single_Write(ADXL345_Addr, ADXL345_POWER_CTL, 0x28))
@@ -201,13 +197,13 @@ int ADXL345_Auto_Adjust(void)
     for (int i = 0; i < 10; i++)
     {
         ADXL345_Read(temp_buf);
-        temp_x_2 += temp_buf[0];
-        temp_y_2 += temp_buf[1];
-        temp_z_2 += temp_buf[2];
+        temp_x += temp_buf[0];
+        temp_y += temp_buf[1];
+        temp_z += temp_buf[2];
     }
-    temp_buf[0] = temp_x_2 / 10;
-    temp_buf[1] = temp_y_2 / 10;
-    temp_buf[2] = temp_z_2 / 10;
+    temp_buf[0] = temp_x / 10;
+    temp_buf[1] = temp_y / 10;
+    temp_buf[2] = temp_z / 10;
 
     offx = -temp_buf[0] / 4;
     offy = -temp_buf[1] / 4;
@@ -235,22 +231,14 @@ int ADXL345_Auto_Adjust(void)
  * @return
  *          无
  */
-void ADXL345_Read(int *Buf)
+void ADXL345_Read(short *Buf)
 {
     uint8_t BUF_ADXL345[6];
     if(Multiple_Read(ADXL345_Addr, ADXL345_DATAX0, BUF_ADXL345, 6))
     {
-        Buf[0] = (BUF_ADXL345[1] << 8) + BUF_ADXL345[0]; //合成数据
-        Buf[1] = (BUF_ADXL345[3] << 8) + BUF_ADXL345[2]; //合成数据
-        Buf[2] = (BUF_ADXL345[5] << 8) + BUF_ADXL345[4]; //合成数据
-        // printf("%d, %d, %d, %d, %d, %d----------ADXL345\n", BUF_ADXL345[0], BUF_ADXL345[1], BUF_ADXL345[2] ,BUF_ADXL345[3], BUF_ADXL345[4], BUF_ADXL345[5]);
-        if (Buf[0] > 0x7FFF)
-            Buf[0] -= 0xFFFF;
-        if (Buf[1] > 0x7FFF)
-            Buf[1] -= 0xFFFF;
-        if (Buf[2] > 0x7FFF)
-            Buf[2] -= 0xFFFF;
-        // printf("%d, %d, %d------ADXL345----------\n", Buf[0], Buf[1], Buf[2]);
+        Buf[0] = (short)(((uint16_t)BUF_ADXL345[1] << 8) + BUF_ADXL345[0]); //合成数据
+        Buf[1] = (short)(((uint16_t)BUF_ADXL345[3] << 8) + BUF_ADXL345[2]); //合成数据
+        Buf[2] = (short)(((uint16_t)BUF_ADXL345[5] << 8) + BUF_ADXL345[4]); //合成数据
     }
     else{
         printf("ADXL345 READ ERRPR!------------------\n");
@@ -269,22 +257,48 @@ void ADXL345_Read(int *Buf)
  */
 void ADXL345_Read_Average(float *Buf, int times)
 {
-    int temp_buf[3] = {0};
-    int temp_x_2 = 0, temp_y_2 = 0, temp_z_2 = 0;
+    short temp_buf[3] = {0};
+    short temp_x = 0, temp_y = 0, temp_z = 0;
     for (int i = 0; i < times; i++)
     {
         ADXL345_Read(temp_buf);
-        temp_x_2 += temp_buf[0];
-        temp_y_2 += temp_buf[1];
-        temp_z_2 += temp_buf[2];
+        temp_x += temp_buf[0];
+        temp_y += temp_buf[1];
+        temp_z += temp_buf[2];
     }
-    Buf[0] = (((float)temp_x_2 / times) * 3.9 * 9.8) / 1000.0;
-    Buf[1] = (((float)temp_y_2 / times) * 3.9 * 9.8) / 1000.0;
-    Buf[2] = (((float)temp_z_2 / times) * 3.9 * 9.8) / 1000.0;
+    Buf[0] = (((float)temp_x / times) * 3.9 * 9.8) / 1000.0;
+    Buf[1] = (((float)temp_y / times) * 3.9 * 9.8) / 1000.0;
+    Buf[2] = (((float)temp_z / times) * 3.9 * 9.8) / 1000.0;
 
 }
 
+void ADXL345_Fifo_Read(float *Buf, int times)
+{
+    uint8_t BUF_ADXL345[6];
+    short Buf_temp[6] = {0};
+    short Buf_temp1[3] = {0};
+    for(int i = 0; i < times; i++)
+    {
+        if(Multiple_Read(ADXL345_Addr, ADXL345_DATAX0, BUF_ADXL345, 6))
+        {
+            for(int i = 0; i < 6; i++)
+            {
+                Buf_temp[i] += BUF_ADXL345[i];
+            }
+        }
+        else{
+            printf("ADXL345 READ ERRPR!------------------\n");
+        }
+    }
+    //此处times应取多少，Buf中的值右移多少位，参考网页：https://www.analog.com/en/design-center/interactive-design-tools/accelerometer-fifo-calculator.html
+    Buf_temp1[0] = (short)(((uint16_t)Buf_temp[1] << 8) + Buf_temp[0]) >> 2; //合成数据
+    Buf_temp1[1] = (short)(((uint16_t)Buf_temp[3] << 8) + Buf_temp[2]) >> 2; //合成数据
+    Buf_temp1[2] = (short)(((uint16_t)Buf_temp[5] << 8) + Buf_temp[4]) >> 2; //合成数据
+    Buf[0] = ((float)Buf_temp1[0] * 9.8) / 1000.0;
+    Buf[1] = ((float)Buf_temp1[1] * 9.8) / 1000.0;
+    Buf[2] = ((float)Buf_temp1[2] * 9.8) / 1000.0;
 
+}
 
 /**
  * @brief   计算偏角

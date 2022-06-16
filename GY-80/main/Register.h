@@ -55,6 +55,7 @@
 #define BMP085_DATA_ADDR        0xF4
 #define BMP085_DATA_MSB         0xF6
 #define BMP085_DATA_LSB         0xF7
+#define BMP085_DATA_XLSB        0xF8
 #define BMP085_TEMPERATURE      0x2E
 #define BMP085_PRESSURE         0x34
 
