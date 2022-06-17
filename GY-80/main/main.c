@@ -89,13 +89,14 @@ void Init_AHRS(void)
     //初始化L3G4200D
     while (!Init_L3G4200D());
     printf("L3G4200D 初始化完成\n");
+    //初始化BMP085
+    Init_BMP085(Data.AC_123, Data.AC_456, Data.B1_MD);
+    printf("BMP085 初始化完成\n");
     //初始化HMC5883L
     Init_HMC5883L();
     HMC5883L_SELFTEST(Data.Offset, Data.K_XYZ);
     printf("HMC5883L 初始化完成\n");
-    //初始化BMP085
-    Init_BMP085(Data.AC_123, Data.AC_456, Data.B1_MD);
-    printf("BMP085 初始化完成\n");
+    
     
 }
 /***************************AHRS*********************************/
@@ -112,11 +113,11 @@ void Task_AHRS(void *parameter)
         // printf("当前时间为：%lld------------------------3\n", esp_timer_get_time());
         /*****************读取磁场角度*******************/
         HMC5883L_Data_Update();
-        // IMU_AHRSupdate(Data.Buf_Gyro[0], Data.Buf_Gyro[1], Data.Buf_Gyro[2],
-        //                 Data.ACC_Gavity[0], Data.ACC_Gavity[1], Data.ACC_Gavity[2],
-        //                 Data.mag_XYZ[0], Data.mag_XYZ[1], Data.mag_XYZ[2], Q_angle);
-        IMU_update(Data.Buf_Gyro[0], Data.Buf_Gyro[1], Data.Buf_Gyro[2],
-                        Data.ACC_Gavity[0], Data.ACC_Gavity[1], Data.ACC_Gavity[2], Q_angle);
+        IMU_AHRSupdate(Data.Buf_Gyro[0], Data.Buf_Gyro[1], Data.Buf_Gyro[2],
+                        Data.ACC_Gavity[0], Data.ACC_Gavity[1], Data.ACC_Gavity[2],
+                        Data.mag_XYZ[0], Data.mag_XYZ[1], Data.mag_XYZ[2], Q_angle);
+        // IMU_update(Data.Buf_Gyro[0], Data.Buf_Gyro[1], Data.Buf_Gyro[2],
+        //                 Data.ACC_Gavity[0], Data.ACC_Gavity[1], Data.ACC_Gavity[2], Q_angle);
         Q_angle_temp[0] = kalmanCalculate(Q_angle[0], Data.Buf_Gyro[0], 10, 0);
         Q_angle_temp[1] = kalmanCalculate(Q_angle[1], Data.Buf_Gyro[1], 10, 1);
         Q_angle_temp[2] = kalmanCalculate(Q_angle[2], Data.Buf_Gyro[2], 10, 2);
@@ -145,6 +146,8 @@ void Task_Show(void *parameter)
         ESP_LOGI(TAG, "三轴角速度为：X = %f, Y = %f, Z = %f", Data.Buf_Gyro[0], Data.Buf_Gyro[1], Data.Buf_Gyro[2]);
         ESP_LOGI(TAG, "三轴加速度为：Xg = %lf, Yg = %lf, Zg = %lf", Data.ACC_Gavity[0], Data.ACC_Gavity[1], Data.ACC_Gavity[2]);
         ESP_LOGI(TAG, "加速度偏角为：Angle_X = %lf, Angle_Y = %lf, Angle_Z = %lf", Data.ACC_Angle[0], Data.ACC_Angle[1], Data.ACC_Angle[2]);
+        ESP_LOGI(TAG, "比例系数：Offset_X = %f, Offset_Y = %f, Offset_Z = %f\nK_XYZ_X = %f, K_XYZ_Y = %f, K_XYZ_Z = %f", 
+                                        Data.Offset[0], Data.Offset[1], Data.Offset[2], Data.K_XYZ[0], Data.K_XYZ[1], Data.K_XYZ[2]);
         ESP_LOGI(TAG, "磁场偏角为：XoY = %f, XoZ = %f, YoZ = %f", Data.mag_Angle[0], Data.mag_Angle[1], Data.mag_Angle[2]);
         ESP_LOGI(TAG, "当前温度为：%.2lf ℃", (double)Data.temperature / 10.0);
         ESP_LOGI(TAG, "当前气压为：%ld Pa", Data.pressure);

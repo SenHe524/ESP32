@@ -117,6 +117,12 @@ int Init_ADXL345(void)
     Single_Write_hardware(ADXL345_Addr, ADXL345_POWER_CTL, 0x08);
     //设置FIFO模式:FIFO模式，样本位：31
     Single_Write_hardware(ADXL345_Addr, ADXL345_FIFO_CTL, 0x9F);
+    // X 偏移量 根据测试传感器的状态写入pdf29页
+    Single_Write_hardware(ADXL345_Addr, ADXL345_OFSX, 0x00);
+    // Y 偏移量 根据测试传感器的状态写入pdf29页
+    Single_Write_hardware(ADXL345_Addr, ADXL345_OFSY, 0x00);
+    // Z 偏移量 根据测试传感器的状态写入pdf29页
+    Single_Write_hardware(ADXL345_Addr, ADXL345_OFSZ, 0x00);
     return 1;
 }
 
@@ -295,7 +301,6 @@ void Init_HMC5883L(void)
 }
 
 
-// void HMC5883L_Raw_Read(float *Angle, float *mag_XYZ)
 /**
  * @brief           读取HMC5883L原始数据
  * 
@@ -320,10 +325,6 @@ void HMC5883L_Raw_Read(float *mag_XYZ)
         mag_XYZ[1] /= 1090;
         mag_XYZ[2] /= 1090;
         // printf("%f, %f, %f\n", mag_XYZ[0], mag_XYZ[1], mag_XYZ[2]);
-        // Angle[0] = atan2(mag_XYZ[1], mag_XYZ[0]) * (180 / 3.14159265) + 180; //计算XY平面角度
-        // Angle[1] = atan2(mag_XYZ[2], mag_XYZ[0]) * (180 / 3.14159265) + 180; //计算XZ平面角度
-        // Angle[2] = atan2(mag_XYZ[2], mag_XYZ[1]) * (180 / 3.14159265) + 180; //计算YZ平面角度
-
     }
 }
 
@@ -338,33 +339,31 @@ void HMC5883L_SELFTEST(float *Offset, float *K_XYZ)
     float xyz[3];
     float GaXmax = 0, GaXmin = 0, GaYmax = 0, GaYmin = 0, GaZmax = 0, GaZmin = 0;
     printf("Start HMC5883L Selftest!!!!!!\n");
-    vTaskDelay(3000 / portTICK_RATE_MS);
-    for(int i = 0; i < 100; i++)
+    vTaskDelay(2000 / portTICK_RATE_MS);
+    for(int i = 0; i < 500; i++)
     {
         HMC5883L_Raw_Read(xyz);
         GaXmax = GaXmax < xyz[0]? xyz[0]:GaXmax;
 		GaXmin = GaXmin > xyz[0]? xyz[0]:GaXmin;
 		GaYmax = GaYmax < xyz[1]? xyz[1]:GaYmax;
 		GaYmin = GaYmin > xyz[1]? xyz[1]:GaYmin;
-        GaZmax = GaZmax < xyz[2]? xyz[2]:GaZmax;
-		GaZmin = GaZmin > xyz[2]? xyz[2]:GaZmin;
-        ets_delay_us(50000);
-        printf(".");
+        // GaZmax = GaZmax < xyz[2]? xyz[2]:GaZmax;
+		// GaZmin = GaZmin > xyz[2]? xyz[2]:GaZmin;
+        ets_delay_us(10000);
     }
     printf("%f, %f, %f, %f, %f, %f\n",GaXmax, GaXmin, GaYmax, GaYmin, GaZmax, GaZmin);
     printf("\nHMC5883L Selftest End!!!!!!\n");
     Offset[0] = (GaXmax+GaXmin)/2;
     Offset[1] = (GaYmax+GaYmin)/2;
-    Offset[2] = (GaZmax+GaZmin)/2;
+    // Offset[2] = (GaZmax+GaZmin)/2;
     K_XYZ[0] = 2 / (GaXmax-GaXmin);
     K_XYZ[1] = 2 / (GaYmax-GaYmin);
-    K_XYZ[2] = 2 / (GaZmax-GaZmin);
+    // K_XYZ[2] = 2 / (GaZmax-GaZmin);
     printf("%f, %f, %f, %f, %f, %f\n",Offset[0], Offset[1], Offset[2], K_XYZ[0], K_XYZ[1], K_XYZ[2]);
 }
 
 /**
  * @brief           HMC5883L数据读取
- * 
  * @param Angle     存储三轴偏角
  * @param mag_XYZ   存储三轴原始数据
  * @param Offset    用于校准的数据
@@ -376,12 +375,11 @@ void HMC5883L_READ(float *Angle, float *mag_XYZ, float *Offset, float *K_XYZ)
     HMC5883L_Raw_Read(rawGaXYZ);
     mag_XYZ[0] = (rawGaXYZ[0] - Offset[0]) * K_XYZ[0];
     mag_XYZ[1] = (rawGaXYZ[1] - Offset[1]) * K_XYZ[1];
-    mag_XYZ[2] = (rawGaXYZ[2] - Offset[2]) * K_XYZ[2];
-    // printf("%f, %f, %f\n",mag_XYZ[0], mag_XYZ[1], mag_XYZ[2]);
+    // mag_XYZ[2] = (rawGaXYZ[2] - Offset[2]) * K_XYZ[2];
+    mag_XYZ[2] = rawGaXYZ[2];
     Angle[0]= atan2(mag_XYZ[1],mag_XYZ[0]) * (180 / 3.14159265) + 180; // angle in degrees
     Angle[1]= atan2(mag_XYZ[2],mag_XYZ[0]) * (180 / 3.14159265) + 180; // angle in degrees
     Angle[2]= atan2(mag_XYZ[2],mag_XYZ[1]) * (180 / 3.14159265) + 180; // angle in degrees
-    // printf("%f, %f, %f\n",mag_XYZ[0], mag_XYZ[1], mag_XYZ[2]);
 }
 
 /***************************BMP085**********************************/
@@ -396,34 +394,24 @@ void Init_BMP085(short *AC_123, unsigned short *AC_456, short *B1_MD)
 {
     AC_123[0] = Single_Read_hardware(BMP085_Addr, BMP085_AC1);                        // READ MSB
     AC_123[0] = (AC_123[0] << 8) | Single_Read_hardware(BMP085_Addr, BMP085_AC1 + 1); // READ LSB AND COMBINE (MSB | LSB)
-
     AC_123[1] = Single_Read_hardware(BMP085_Addr, BMP085_AC2);                        // READ MSB
     AC_123[1] = (AC_123[1] << 8) | Single_Read_hardware(BMP085_Addr, BMP085_AC2 + 1); // READ LSB AND COMBINE (MSB | LSB)
-
     AC_123[2] = Single_Read_hardware(BMP085_Addr, BMP085_AC3);                        // READ MSB
     AC_123[2] = (AC_123[2] << 8) | Single_Read_hardware(BMP085_Addr, BMP085_AC3 + 1); // READ LSB AND COMBINE (MSB | LSB)
-
     AC_456[0] = Single_Read_hardware(BMP085_Addr, BMP085_AC4);                        // READ MSB
     AC_456[0] = (AC_456[0] << 8) | Single_Read_hardware(BMP085_Addr, BMP085_AC4 + 1); // READ LSB AND COMBINE (MSB | LSB)
-
     AC_456[1] = Single_Read_hardware(BMP085_Addr, BMP085_AC5);                        // READ MSB
     AC_456[1] = (AC_456[1] << 8) | Single_Read_hardware(BMP085_Addr, BMP085_AC5 + 1); // READ LSB AND COMBINE (MSB | LSB)
-
     AC_456[2] = Single_Read_hardware(BMP085_Addr, BMP085_AC6);                        // READ MSB
     AC_456[2] = (AC_456[2] << 8) | Single_Read_hardware(BMP085_Addr, BMP085_AC6 + 1); // READ LSB AND COMBINE (MSB | LSB)
-
     B1_MD[0] = Single_Read_hardware(BMP085_Addr, BMP085_B1);                       // READ MSB
     B1_MD[0] = (B1_MD[0] << 8) | Single_Read_hardware(BMP085_Addr, BMP085_B1 + 1); // READ LSB AND COMBINE (MSB | LSB)
-
     B1_MD[1] = Single_Read_hardware(BMP085_Addr, BMP085_B2);                       // READ MSB
     B1_MD[1] = (B1_MD[1] << 8) | Single_Read_hardware(BMP085_Addr, BMP085_B2 + 1); // READ LSB AND COMBINE (MSB | LSB)
-
     B1_MD[2] = Single_Read_hardware(BMP085_Addr, BMP085_MB);                       // READ MSB
     B1_MD[2] = (B1_MD[2] << 8) | Single_Read_hardware(BMP085_Addr, BMP085_MB + 1); // READ LSB AND COMBINE (MSB | LSB)
-
     B1_MD[3] = Single_Read_hardware(BMP085_Addr, BMP085_MC);                       // READ MSB
     B1_MD[3] = (B1_MD[3] << 8) | Single_Read_hardware(BMP085_Addr, BMP085_MC + 1); // READ LSB AND COMBINE (MSB | LSB)
-
     B1_MD[4] = Single_Read_hardware(BMP085_Addr, BMP085_MD);                       // READ MSB
     B1_MD[4] = (B1_MD[4] << 8) | Single_Read_hardware(BMP085_Addr, BMP085_MD + 1); // READ LSB AND COMBINE (MSB | LSB)
 }
@@ -455,7 +443,6 @@ void BMP085_Read_Pressure(long *pressure_temp)
     temp[2] = Single_Read_hardware(BMP085_Addr, BMP085_DATA_XLSB);
     *pressure_temp = ((temp[0] << 16) | (temp[1] << 8) | temp[2]) >> (8 - OSS);
     *pressure_temp &= 0x0007FFFF;//将19位以后都置0
-    // printf("%ld, %ld, %ld-------------%ld\n", temp[0], temp[1], temp[2], *pressure_temp);
 
 }
 

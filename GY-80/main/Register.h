@@ -1,8 +1,6 @@
 #ifndef _REGISTER_H_
 #define _REGISTER_H_
 
-
-
 /* -------L3G4200 Register names ------- */
 #define	L3G4200_Addr            0xD2	//陀螺仪传感器器件地址
 #define L3G4200_DEVID           0x0F
@@ -22,42 +20,6 @@
 #define L3G4200_STATUS          0x27
 #define L3G4200_FIFO_CTRL       0x2E
 #define L3G4200_FIFO_SRC        0x2F
-/* -------HMC5883L Register names ------- */
-#define	HMC5883L_Addr   0x3C	//磁场传感器器件地址
-#define	HMC5883L_Configuration_Register_A       0x00
-#define	HMC5883L_Configuration_Register_B       0x01
-#define	HMC5883L_Mode_Register      0x02
-#define	HMC5883L_Register_XMSB      0x03
-#define	HMC5883L_Register_XLSB      0x04
-#define	HMC5883L_Register_ZMSB      0x05
-#define	HMC5883L_Register_ZLSB      0x06
-#define	HMC5883L_Register_YMSB      0x07
-#define	HMC5883L_Register_YLSB      0x08
-#define	HMC5883L_Status_Register    0x09
-#define	HMC5883L_Identification_Register_A      0x10
-#define	HMC5883L_Identification_Register_B      0x11
-#define	HMC5883L_Identification_Register_C      0x12
-
-
-/* -------BMP085 Register names ------- */
-#define	BMP085_Addr     0xEE	//气压传感器器件地址
-#define BMP085_AC1      0xAA
-#define BMP085_AC2      0xAC
-#define BMP085_AC3      0xAE
-#define BMP085_AC4      0xB0
-#define BMP085_AC5      0xB2
-#define BMP085_AC6      0xB4
-#define BMP085_B1       0xB6
-#define BMP085_B2       0xB8
-#define BMP085_MB       0xBA
-#define BMP085_MC       0xBC
-#define BMP085_MD       0xBE
-#define BMP085_DATA_ADDR        0xF4
-#define BMP085_DATA_MSB         0xF6
-#define BMP085_DATA_LSB         0xF7
-#define BMP085_DATA_XLSB        0xF8
-#define BMP085_TEMPERATURE      0x2E
-#define BMP085_PRESSURE         0x34
 
 /* -------ADXL345 Register names ------- */
 #define	ADXL345_Addr          0xA6	//加速度传感器器件地址
@@ -92,5 +54,41 @@
 #define ADXL345_DATAZ1          0x37
 #define ADXL345_FIFO_CTL        0x38
 #define ADXL345_FIFO_STATUS     0x39
+
+/* -------HMC5883L Register names ------- */
+#define	HMC5883L_Addr   0x3C	//磁场传感器器件地址
+#define	HMC5883L_Configuration_Register_A       0x00
+#define	HMC5883L_Configuration_Register_B       0x01
+#define	HMC5883L_Mode_Register      0x02
+#define	HMC5883L_Register_XMSB      0x03
+#define	HMC5883L_Register_XLSB      0x04
+#define	HMC5883L_Register_ZMSB      0x05
+#define	HMC5883L_Register_ZLSB      0x06
+#define	HMC5883L_Register_YMSB      0x07
+#define	HMC5883L_Register_YLSB      0x08
+#define	HMC5883L_Status_Register    0x09
+#define	HMC5883L_Identification_Register_A      0x10
+#define	HMC5883L_Identification_Register_B      0x11
+#define	HMC5883L_Identification_Register_C      0x12
+
+/* -------BMP085 Register names ------- */
+#define	BMP085_Addr     0xEE	//气压传感器器件地址
+#define BMP085_AC1      0xAA
+#define BMP085_AC2      0xAC
+#define BMP085_AC3      0xAE
+#define BMP085_AC4      0xB0
+#define BMP085_AC5      0xB2
+#define BMP085_AC6      0xB4
+#define BMP085_B1       0xB6
+#define BMP085_B2       0xB8
+#define BMP085_MB       0xBA
+#define BMP085_MC       0xBC
+#define BMP085_MD       0xBE
+#define BMP085_DATA_ADDR        0xF4
+#define BMP085_DATA_MSB         0xF6
+#define BMP085_DATA_LSB         0xF7
+#define BMP085_DATA_XLSB        0xF8
+#define BMP085_TEMPERATURE      0x2E
+#define BMP085_PRESSURE         0x34
 
 #endif
