@@ -124,10 +124,11 @@ void IMU_AHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, 
 	// X - φ
 	Q_angle[0] = atan2(2.0f * (q2q3 + q0q1), -2.0f * (q1q1 + q2q2) + 1.0f) * 57.2957795f;
 	// Y - θ
-	Q_angle[1] = asin(-2.0f * q1q3 + 2.0f * q0q2) * 57.2957795f; 
+	Q_angle[1] = -asin(-2.0f * q1q3 + 2.0f * q0q2) * 57.2957795f; //上仰为正，下俯为负
 	// Z - ψ
 	Q_angle[2] = atan2(2.0f * (q1q2 + q0q3), -2.0f * (q2q2 + q3q3) + 1.0f) * 57.2957795f;
 	Q_angle[2] = Q_angle[2] < 0? (0-Q_angle[2]):(360-Q_angle[2]);
+	Q_angle[2] -= 2.43;//减去磁偏角，磁北转换为真北方向
 }
 
 void IMU_update(float gx, float gy, float gz, float ax, float ay, float az, float *Q_angle)
@@ -212,7 +213,7 @@ void IMU_update(float gx, float gy, float gz, float ax, float ay, float az, floa
 	// X - φ
 	Q_angle[0] = atan2(2.0f * (q2q3 + q0q1), -2.0f * (q1q1 + q2q2) + 1.0f) * 57.2957795f;
 	// Y - θ
-	Q_angle[1] = asin(-2.0f * q1q3 + 2.0f * q0q2) * 57.2957795f; 
+	Q_angle[1] = -asin(-2.0f * q1q3 + 2.0f * q0q2) * 57.2957795f; //上仰为正，下俯为负
 	// Z - ψ
 	Q_angle[2] = atan2(2.0f * (q1q2 + q0q3), -2.0f * (q2q2 + q3q3) + 1.0f) * 57.2957795f;
 	Q_angle[2] = Q_angle[2] < 0? (0-Q_angle[2]):(360-Q_angle[2]);

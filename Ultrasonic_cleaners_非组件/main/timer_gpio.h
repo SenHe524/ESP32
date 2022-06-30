@@ -1,3 +1,6 @@
+#ifndef _TIMER_GPIO_H_
+#define _TIMER_GPIO_H_
+
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -39,5 +42,4 @@ typedef struct
 
 void timer_gpio_init(void);
 
-
-
+#endif

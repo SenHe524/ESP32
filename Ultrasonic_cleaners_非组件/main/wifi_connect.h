@@ -1,3 +1,6 @@
+#ifndef _WIFI_CONNECT_H_
+#define _WIFI_CONNECT_H_
+
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -21,3 +24,5 @@
 
 //
 int wifi_init_sta(void);
+
+#endif

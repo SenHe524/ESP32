@@ -1,3 +1,6 @@
+#ifndef _OTA_TASK_H_
+#define _OTA_TASK_H_
+
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -22,3 +25,5 @@
 xQueueHandle ota_Queue_t;
 
 void ota_detection(void);
+
+#endif

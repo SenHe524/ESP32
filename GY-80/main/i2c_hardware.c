@@ -43,14 +43,14 @@ void Multiple_Read_Hardware(uint8_t SlaveAddress,  uint8_t Read_Address, uint8_t
     i2c_master_start(cmd);
 	i2c_master_write_byte(cmd, SlaveAddress + 1, ACK_CHECK_EN);
     //循环单字节读
-    for(int i = 0; i < Len-1; i++)
-    {
-        i2c_master_read_byte(cmd, rx_buf++, I2C_MASTER_ACK);
-    }
-    i2c_master_read_byte(cmd, rx_buf, I2C_MASTER_NACK);
+    // for(int i = 0; i < Len-1; i++)
+    // {
+    //     i2c_master_read_byte(cmd, rx_buf++, I2C_MASTER_ACK);
+    // }
+    // i2c_master_read_byte(cmd, rx_buf, I2C_MASTER_NACK);
 
     // //直接读Len个字节
-    // i2c_master_read(cmd, rx_buf, Len, I2C_MASTER_LAST_NACK);
+    i2c_master_read(cmd, rx_buf, Len, I2C_MASTER_LAST_NACK);
 
     //先读Len-1个字节 然后读1个字节
     // i2c_master_read(cmd, rx_buf, Len - 1, I2C_MASTER_ACK);

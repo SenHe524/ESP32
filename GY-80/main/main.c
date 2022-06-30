@@ -54,10 +54,10 @@ void Task_AHRS(void *parameter);
 void Task_Show(void *parameter);
 /*************************数据读取函数声明**************************/
 void Init_AHRS(void);
-void L3G4200D_Data_Update(void);
-void ADXL345_Data_Update(void);
-void HMC5883L_Data_Update(void);
-void BMP085_Data_Update(void);
+// void L3G4200D_Data_Update(void);
+// void ADXL345_Data_Update(void);
+// void HMC5883L_Data_Update(void);
+// void BMP085_Data_Update(void);
 
 /******************************主函数*********************************/
 #define I2C_SCL_HARDWARE 18
@@ -69,13 +69,6 @@ void app_main(void)
     esp_task_wdt_add(Task_AHRS_t);
     I2C_Init(I2C_SCL_HARDWARE, I2C_SDA_HARDWARE);
     Init_AHRS();
-    ADXL345_Data_Update();
-    kalmanSetAngle(Data.ACC_Angle[0], 0);
-    kalmanSetAngle(Data.ACC_Angle[1], 1);
-    kalmanSetAngle(Data.ACC_Angle[2], 2);
-    kalman_angle[0] = Data.ACC_Angle[0];
-    kalman_angle[1] = Data.ACC_Angle[1];
-    kalman_angle[2] = Data.ACC_Angle[2];
     xTaskCreatePinnedToCore((TaskFunction_t)Task_AHRS, "Task_AHRS", 8192, &Data, 10, &Task_AHRS_t, (BaseType_t)1);
     xTaskCreatePinnedToCore((TaskFunction_t)Task_Show, "Task_Show", 4096, &Data, 5, &Task_Show_t, (BaseType_t)0);
 }
@@ -85,6 +78,14 @@ void Init_AHRS(void)
     //初始化ADXL345
     while (!Init_ADXL345());
     while (!ADXL345_Auto_Adjust());
+    //初始化ADXL345之后对卡尔曼参数进行初始化
+    ADXL345_Fifo_Read(Data.ACC_Gavity, 16);
+    Data.ACC_Angle[0] = ADXL345_Angle(Data.ACC_Gavity, 1);
+    Data.ACC_Angle[1] = ADXL345_Angle(Data.ACC_Gavity, 2);
+    kalmanSetAngle(Data.ACC_Angle[0], 0);
+    kalmanSetAngle(Data.ACC_Angle[1], 1);
+    kalman_angle[0] = Data.ACC_Angle[0];
+    kalman_angle[1] = Data.ACC_Angle[1];
     printf("ADXL345 初始化完成\n");
     //初始化L3G4200D
     while (!Init_L3G4200D());
@@ -96,8 +97,9 @@ void Init_AHRS(void)
     Init_HMC5883L();
     HMC5883L_SELFTEST(Data.Offset, Data.K_XYZ);
     printf("HMC5883L 初始化完成\n");
-    
-    
+    HMC5883L_READ(Data.mag_Angle, Data.mag_XYZ, Data.Offset, Data.K_XYZ);
+    kalmanSetAngle(Data.mag_Angle[0], 2);
+    kalman_angle[2] = Data.mag_Angle[0];
 }
 /***************************AHRS*********************************/
 void Task_AHRS(void *parameter)
@@ -106,18 +108,21 @@ void Task_AHRS(void *parameter)
     {
         // printf("当前时间为：%lld------------------------1\n", esp_timer_get_time());
         /*****************读取加速度*******************/
-        ADXL345_Data_Update();
+        // ADXL345_Data_Update();
+        ADXL345_Fifo_Read(Data.ACC_Gavity, 16);
         // printf("当前时间为：%lld------------------------2\n", esp_timer_get_time());
         /*****************读取角速度*******************/
-        L3G4200D_Data_Update();
+        // L3G4200D_Data_Update();
+        L3G4200D_Read_Average(Data.Buf_Gyro, 5);
         // printf("当前时间为：%lld------------------------3\n", esp_timer_get_time());
         /*****************读取磁场角度*******************/
-        HMC5883L_Data_Update();
+        // HMC5883L_Data_Update();
+        HMC5883L_READ(Data.mag_Angle, Data.mag_XYZ, Data.Offset, Data.K_XYZ);
+
         IMU_AHRSupdate(Data.Buf_Gyro[0], Data.Buf_Gyro[1], Data.Buf_Gyro[2],
                         Data.ACC_Gavity[0], Data.ACC_Gavity[1], Data.ACC_Gavity[2],
                         Data.mag_XYZ[0], Data.mag_XYZ[1], Data.mag_XYZ[2], Q_angle);
-        // IMU_update(Data.Buf_Gyro[0], Data.Buf_Gyro[1], Data.Buf_Gyro[2],
-        //                 Data.ACC_Gavity[0], Data.ACC_Gavity[1], Data.ACC_Gavity[2], Q_angle);
+
         Q_angle_temp[0] = kalmanCalculate(Q_angle[0], Data.Buf_Gyro[0], 10, 0);
         Q_angle_temp[1] = kalmanCalculate(Q_angle[1], Data.Buf_Gyro[1], 10, 1);
         Q_angle_temp[2] = kalmanCalculate(Q_angle[2], Data.Buf_Gyro[2], 10, 2);
@@ -137,18 +142,19 @@ void Task_Show(void *parameter)
     while(1)
     {
         printf("\n");
-        BMP085_Data_Update();
-        ESP_LOGI(TAG, "Roll: %f\t kalman_Roll: %f", Q_angle[0], Q_angle_temp[0]);
-        ESP_LOGI(TAG, "Pitch: %f\t kalman_Pitch: %f", Q_angle[1], Q_angle_temp[1]);
-        ESP_LOGI(TAG, "Yaw: %f\t kalman_Yaw: %f", Q_angle[2], Q_angle_temp[2]);
-        ESP_LOGI(TAG, "比例融合后的Kalman姿态角为：Roll = %lf, Pitch = %lf, Yaw = %lf\n", kalman_angle[0], kalman_angle[1], kalman_angle[2]);
+        // BMP085_Data_Update();
+        BMP085_Data_Calculate(&Data.temperature, &Data.pressure, Data.AC_123, Data.AC_456, Data.B1_MD);
+        ESP_LOGI(TAG, "Roll: %.2f\t kalman_Roll: %.2f", Q_angle[0], Q_angle_temp[0]);
+        ESP_LOGI(TAG, "Pitch: %.2f\t kalman_Pitch: %.2f", Q_angle[1], Q_angle_temp[1]);
+        ESP_LOGI(TAG, "Yaw: %.2f\t kalman_Yaw: %.2f", Q_angle[2], Q_angle_temp[2]);
+        // ESP_LOGI(TAG, "比例融合后的Kalman姿态角为：Roll = %.2f, Pitch = %.2f, Yaw = %.2f\n", kalman_angle[0], kalman_angle[1], kalman_angle[2]);
 
-        ESP_LOGI(TAG, "三轴角速度为：X = %f, Y = %f, Z = %f", Data.Buf_Gyro[0], Data.Buf_Gyro[1], Data.Buf_Gyro[2]);
-        ESP_LOGI(TAG, "三轴加速度为：Xg = %lf, Yg = %lf, Zg = %lf", Data.ACC_Gavity[0], Data.ACC_Gavity[1], Data.ACC_Gavity[2]);
-        ESP_LOGI(TAG, "加速度偏角为：Angle_X = %lf, Angle_Y = %lf, Angle_Z = %lf", Data.ACC_Angle[0], Data.ACC_Angle[1], Data.ACC_Angle[2]);
-        ESP_LOGI(TAG, "比例系数：Offset_X = %f, Offset_Y = %f, Offset_Z = %f\nK_XYZ_X = %f, K_XYZ_Y = %f, K_XYZ_Z = %f", 
+        ESP_LOGI(TAG, "三轴角速度为：X = %.3f, Y = %.3f, Z = %.3f", Data.Buf_Gyro[0], Data.Buf_Gyro[1], Data.Buf_Gyro[2]);
+        ESP_LOGI(TAG, "三轴加速度为：Xg = %.3f, Yg = %.3f, Zg = %.3f", Data.ACC_Gavity[0], Data.ACC_Gavity[1], Data.ACC_Gavity[2]);
+        // ESP_LOGI(TAG, "加速度偏角为：Angle_X = %lf, Angle_Y = %lf, Angle_Z = %lf", Data.ACC_Angle[0], Data.ACC_Angle[1], Data.ACC_Angle[2]);
+        ESP_LOGI(TAG, "比例系数：Offset_X = %f, Offset_Y = %f, Offset_Z = %f\n\t\tK_XYZ_X = %f, K_XYZ_Y = %f, K_XYZ_Z = %f", 
                                         Data.Offset[0], Data.Offset[1], Data.Offset[2], Data.K_XYZ[0], Data.K_XYZ[1], Data.K_XYZ[2]);
-        ESP_LOGI(TAG, "磁场偏角为：XoY = %f, XoZ = %f, YoZ = %f", Data.mag_Angle[0], Data.mag_Angle[1], Data.mag_Angle[2]);
+        // ESP_LOGI(TAG, "磁场偏角为：XoY = %f, XoZ = %f, YoZ = %f", Data.mag_Angle[0], Data.mag_Angle[1], Data.mag_Angle[2]);
         ESP_LOGI(TAG, "当前温度为：%.2lf ℃", (double)Data.temperature / 10.0);
         ESP_LOGI(TAG, "当前气压为：%ld Pa", Data.pressure);
         ESP_LOGI(TAG, "当前海拔为：%fm\n", 44330 * (1 - pow(Data.pressure / 101325.0, 1.0 / 5.255)));
@@ -157,26 +163,23 @@ void Task_Show(void *parameter)
 }
 
 /*************************数据读取**************************/
-void ADXL345_Data_Update(void)
-{
-    ADXL345_Fifo_Read(Data.ACC_Gavity, 16);
-    Data.ACC_Angle[0] = ADXL345_Angle(Data.ACC_Gavity, 1);
-    Data.ACC_Angle[1] = ADXL345_Angle(Data.ACC_Gavity, 2);
-    Data.ACC_Angle[2] = ADXL345_Angle(Data.ACC_Gavity, 0);
-}
+// void ADXL345_Data_Update(void)
+// {
+//     ADXL345_Fifo_Read(Data.ACC_Gavity, 16);
+// }
 
-void L3G4200D_Data_Update(void)
-{
-    L3G4200D_Read_Average(Data.Buf_Gyro, 5);
-}
+// void L3G4200D_Data_Update(void)
+// {
+//     L3G4200D_Read_Average(Data.Buf_Gyro, 5);
+// }
 
-void HMC5883L_Data_Update(void)
-{
-    HMC5883L_READ(Data.mag_Angle, Data.mag_XYZ, Data.Offset, Data.K_XYZ);
-    // HMC5883L_Raw_Read(Data.mag_Angle, Data.mag_XYZ);
-}
+// void HMC5883L_Data_Update(void)
+// {
+//     HMC5883L_READ(Data.mag_Angle, Data.mag_XYZ, Data.Offset, Data.K_XYZ);
+//     // HMC5883L_Raw_Read(Data.mag_Angle, Data.mag_XYZ);
+// }
 
-void BMP085_Data_Update(void)
-{
-    BMP085_Data_Calculate(&Data.temperature, &Data.pressure, Data.AC_123, Data.AC_456, Data.B1_MD);
-}
+// void BMP085_Data_Update(void)
+// {
+//     BMP085_Data_Calculate(&Data.temperature, &Data.pressure, Data.AC_123, Data.AC_456, Data.B1_MD);
+// }

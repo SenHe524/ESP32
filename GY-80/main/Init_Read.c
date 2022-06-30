@@ -32,9 +32,9 @@ int Init_L3G4200D(void)
     // //250dps
     // Single_Write_hardware(L3G4200_Addr,L3G4200_CTRL_REG4,0x00);
     // 500dps
-    // Single_Write_hardware(L3G4200_Addr, L3G4200_CTRL_REG4, 0x10);
+    Single_Write_hardware(L3G4200_Addr, L3G4200_CTRL_REG4, 0x10);
     // //2000dps
-    Single_Write_hardware(L3G4200_Addr, L3G4200_CTRL_REG4, 0x30);
+    // Single_Write_hardware(L3G4200_Addr, L3G4200_CTRL_REG4, 0x30);
     Single_Write_hardware(L3G4200_Addr, L3G4200_CTRL_REG5, 0x00);
     Single_Write_hardware(L3G4200_Addr, L3G4200_REFERENCE, 0x00);
     return 1;
@@ -65,9 +65,9 @@ void L3G4200D_Read(float *BUF_L3G4200D)
         // FS = 250dps   * 0.00875
         // FS = 500dps   * 0.0175
         // FS = 2000dps  * 0.07
-        BUF_L3G4200D[0] = (float)T_X * 0.07;
-        BUF_L3G4200D[1] = (float)T_Y * 0.07;
-        BUF_L3G4200D[2] = (float)T_Z * 0.07;
+        BUF_L3G4200D[0] = (float)T_X * 0.0175;
+        BUF_L3G4200D[1] = (float)T_Y * 0.0175;
+        BUF_L3G4200D[2] = (float)T_Z * 0.0175;
 }
 
 /**
@@ -321,9 +321,9 @@ void HMC5883L_Raw_Read(float *mag_XYZ)
             mag_XYZ[2] -= 0xFFFF;
         if (mag_XYZ[1] > 0x7FFF)
             mag_XYZ[1] -= 0xFFFF;
-        mag_XYZ[0] /= 1090;
-        mag_XYZ[1] /= 1090;
-        mag_XYZ[2] /= 1090;
+        // mag_XYZ[0] /= 1090.0f;
+        // mag_XYZ[1] /= 1090.0f;
+        // mag_XYZ[2] /= 1090.0f;
         // printf("%f, %f, %f\n", mag_XYZ[0], mag_XYZ[1], mag_XYZ[2]);
     }
 }
@@ -347,18 +347,18 @@ void HMC5883L_SELFTEST(float *Offset, float *K_XYZ)
 		GaXmin = GaXmin > xyz[0]? xyz[0]:GaXmin;
 		GaYmax = GaYmax < xyz[1]? xyz[1]:GaYmax;
 		GaYmin = GaYmin > xyz[1]? xyz[1]:GaYmin;
-        // GaZmax = GaZmax < xyz[2]? xyz[2]:GaZmax;
-		// GaZmin = GaZmin > xyz[2]? xyz[2]:GaZmin;
+        GaZmax = GaZmax < xyz[2]? xyz[2]:GaZmax;
+		GaZmin = GaZmin > xyz[2]? xyz[2]:GaZmin;
         ets_delay_us(10000);
     }
     printf("%f, %f, %f, %f, %f, %f\n",GaXmax, GaXmin, GaYmax, GaYmin, GaZmax, GaZmin);
     printf("\nHMC5883L Selftest End!!!!!!\n");
-    Offset[0] = (GaXmax+GaXmin)/2;
-    Offset[1] = (GaYmax+GaYmin)/2;
-    // Offset[2] = (GaZmax+GaZmin)/2;
-    K_XYZ[0] = 2 / (GaXmax-GaXmin);
-    K_XYZ[1] = 2 / (GaYmax-GaYmin);
-    // K_XYZ[2] = 2 / (GaZmax-GaZmin);
+    Offset[0] = (GaXmax + GaXmin) / 2;
+    Offset[1] = (GaYmax + GaYmin) / 2;
+    Offset[2] = (GaZmax + GaZmin) / 2;
+    K_XYZ[0] = 2 / (GaXmax - GaXmin);
+    K_XYZ[1] = 2 / (GaYmax - GaYmin);
+    K_XYZ[2] = 2 / (GaZmax - GaZmin);
     printf("%f, %f, %f, %f, %f, %f\n",Offset[0], Offset[1], Offset[2], K_XYZ[0], K_XYZ[1], K_XYZ[2]);
 }
 
@@ -375,11 +375,14 @@ void HMC5883L_READ(float *Angle, float *mag_XYZ, float *Offset, float *K_XYZ)
     HMC5883L_Raw_Read(rawGaXYZ);
     mag_XYZ[0] = (rawGaXYZ[0] - Offset[0]) * K_XYZ[0];
     mag_XYZ[1] = (rawGaXYZ[1] - Offset[1]) * K_XYZ[1];
-    // mag_XYZ[2] = (rawGaXYZ[2] - Offset[2]) * K_XYZ[2];
-    mag_XYZ[2] = rawGaXYZ[2];
-    Angle[0]= atan2(mag_XYZ[1],mag_XYZ[0]) * (180 / 3.14159265) + 180; // angle in degrees
-    Angle[1]= atan2(mag_XYZ[2],mag_XYZ[0]) * (180 / 3.14159265) + 180; // angle in degrees
-    Angle[2]= atan2(mag_XYZ[2],mag_XYZ[1]) * (180 / 3.14159265) + 180; // angle in degrees
+    mag_XYZ[2] = (rawGaXYZ[2] - Offset[2]) * K_XYZ[2];
+    // mag_XYZ[0] = rawGaXYZ[0] - Offset[0];
+    // mag_XYZ[1] = rawGaXYZ[1] - Offset[1];
+    // mag_XYZ[2] = rawGaXYZ[2] - Offset[2];
+    // mag_XYZ[2] = rawGaXYZ[2];
+    // Angle[0]= atan2(mag_XYZ[1],mag_XYZ[0]) * (180 / 3.14159265) + 180; // angle in degrees
+    // Angle[1]= atan2(mag_XYZ[2],mag_XYZ[0]) * (180 / 3.14159265) + 180; // angle in degrees
+    // Angle[2]= atan2(mag_XYZ[2],mag_XYZ[1]) * (180 / 3.14159265) + 180; // angle in degrees
 }
 
 /***************************BMP085**********************************/

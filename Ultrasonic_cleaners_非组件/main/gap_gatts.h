@@ -1,3 +1,6 @@
+#ifndef _GAP_GATTS_H_
+#define _GAP_GATTS_H_
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -79,3 +82,5 @@ enum
 
 
 void ble_control(void);
+
+#endif

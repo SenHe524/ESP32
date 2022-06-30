@@ -39,7 +39,7 @@ static void __attribute__((noreturn)) task_fatal_error(void)
 {
     ESP_LOGE(TAG, "Exiting task due to fatal error...");
     ota_flag = 1;
-    xQueueSend(ota_Queue_t, &ota_flag, NULL);
+    xQueueSend(ota_Queue_t, &ota_flag, 10);
     (void)vTaskDelete(NULL);
 
     while (1)
@@ -268,7 +268,7 @@ static void ota_task(void *pvParameter)
     }
     ESP_LOGI(TAG, "Prepare to restart system!");
     ota_flag = 1;
-    xQueueSend(ota_Queue_t, &ota_flag, NULL);
+    xQueueSend(ota_Queue_t, &ota_flag, 10);
     esp_restart();
     return ;
 }
@@ -340,6 +340,6 @@ void ota_detection(void)
     }
     else{//否则跳过OTA
         ota_flag = 1;
-        xQueueSend(ota_Queue_t, &ota_flag, NULL);
+        xQueueSend(ota_Queue_t, &ota_flag, 10);
     }
 }

@@ -12,7 +12,6 @@
 #include "nvs.h"
 #include "nvs_flash.h"
 #include "driver/gpio.h"
-#include "protocol_examples_common.h"
 #include "errno.h"
 #include "esp_wifi.h"
 
