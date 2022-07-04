@@ -23,6 +23,7 @@ static float halfT;
 /*******************************互补滤波*******************************/
 void IMU_AHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz, float *Q_angle)
 {
+	// 参考网页：http://www.crazepony.com/wiki/software-algorithm.html
 	float norm;
 	float hx, hy, hz, bx, bz;
 	float vx, vy, vz, wx, wy, wz;
