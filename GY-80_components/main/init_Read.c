@@ -21,22 +21,28 @@
  *                  1：初始化成功
  *                  0：初始化失败
  */
-int Init_L3G4200D(void)
+int Init_L3G4200D(float *drift_buf)
 {
+    float buf_temp[3] = {0};
     if (Single_Read_hardware(L3G4200_Addr, L3G4200_DEVID) != 0xD3)
         return 0;
     //数据输出速率400Hz
-    Single_Write_hardware(L3G4200_Addr, L3G4200_CTRL_REG1, 0x0F);
+    Single_Write_hardware(L3G4200_Addr, L3G4200_CTRL_REG1, 0x8F);
     Single_Write_hardware(L3G4200_Addr, L3G4200_CTRL_REG2, 0x00);
-    Single_Write_hardware(L3G4200_Addr, L3G4200_CTRL_REG3, 0x08);
+    // I2_DRDY、I2_WTM、I2_ORun----enable
+    Single_Write_hardware(L3G4200_Addr, L3G4200_CTRL_REG3, 0x0E);
     // //250dps
     // Single_Write_hardware(L3G4200_Addr,L3G4200_CTRL_REG4,0x00);
     // 500dps
     Single_Write_hardware(L3G4200_Addr, L3G4200_CTRL_REG4, 0x10);
     // //2000dps
     // Single_Write_hardware(L3G4200_Addr, L3G4200_CTRL_REG4, 0x30);
-    Single_Write_hardware(L3G4200_Addr, L3G4200_CTRL_REG5, 0x00);
+    // FIFO_EN、HP_EN------enable
+    Single_Write_hardware(L3G4200_Addr, L3G4200_CTRL_REG5, 0x10);
     Single_Write_hardware(L3G4200_Addr, L3G4200_REFERENCE, 0x00);
+    // FIFO-流模式，样本位：31
+    Single_Write_hardware(L3G4200_Addr, L3G4200_FIFO_CTRL, 0x5F);
+    L3G4200D_Read_Average(drift_buf, 16, buf_temp);
     return 1;
 }
 
@@ -75,7 +81,7 @@ void L3G4200D_Read(float *BUF_L3G4200D)
  * @param   BUF_L3G4200D    用于存储最终数据的数组
  * @param   times           读取次数：times
  */
-void L3G4200D_Read_Average(float *BUF_L3G4200D, int times)
+void L3G4200D_Read_Average(float *BUF_L3G4200D, int times, float *drift_buf)
 {
     float BUF[3] = {0, 0, 0};
     float BUF_TEMP[3] = {0, 0, 0};
@@ -86,9 +92,9 @@ void L3G4200D_Read_Average(float *BUF_L3G4200D, int times)
         BUF[1] += BUF_TEMP[1];
         BUF[2] += BUF_TEMP[2];
     }
-    BUF_L3G4200D[0] = BUF[0] / times ;
-    BUF_L3G4200D[1] = BUF[1] / times ;
-    BUF_L3G4200D[2] = BUF[2] / times ;
+    BUF_L3G4200D[0] = (BUF[0] / times) - drift_buf[0];
+    BUF_L3G4200D[1] = (BUF[1] / times) - drift_buf[1];
+    BUF_L3G4200D[2] = (BUF[2] / times) - drift_buf[2];
 
 }
 

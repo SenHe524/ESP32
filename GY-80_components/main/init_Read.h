@@ -2,9 +2,11 @@
 #define _INIT_READ_H_
 
 /***************************L3G4200D**********************************/
-int Init_L3G4200D(void);
+// int Init_L3G4200D(void);
 void L3G4200D_Read(float *BUF_L3G4200D);
-void L3G4200D_Read_Average(float *BUF_L3G4200D, int times);
+int Init_L3G4200D(float *drift_buf);
+void L3G4200D_Read_Average(float *BUF_L3G4200D, int times, float *drift_buf);
+// void L3G4200D_Read_Average(float *BUF_L3G4200D, int times);
 
 /****************************ADXL345**************************************/
 int Init_ADXL345(void);

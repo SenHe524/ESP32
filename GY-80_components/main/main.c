@@ -19,6 +19,7 @@ typedef struct
 {
     // L3G4200D
     float Buf_Gyro[3]; //三轴角速度
+    float Buf_drift[3];
     // ADXL345
     float ACC_Angle[3]; //三轴偏转角
     float ACC_Gavity[3]; //三轴加速度
@@ -89,7 +90,7 @@ void Init_AHRS(void)
     kalman_angle[1] = Data.ACC_Angle[1];
     printf("ADXL345 初始化完成\n");
     //初始化L3G4200D
-    while (!Init_L3G4200D());
+    while (!Init_L3G4200D(Data.Buf_drift));
     printf("L3G4200D 初始化完成\n");
     //初始化BMP085
     Init_BMP085(Data.AC_123, Data.AC_456, Data.B1_MD);
@@ -114,7 +115,7 @@ void Task_AHRS(void *parameter)
         // printf("当前时间为：%lld------------------------2\n", esp_timer_get_time());
         /*****************读取角速度*******************/
         // L3G4200D_Data_Update();
-        L3G4200D_Read_Average(Data.Buf_Gyro, 5);
+        L3G4200D_Read_Average(Data.Buf_Gyro, 8, Data.Buf_drift);
         // printf("当前时间为：%lld------------------------3\n", esp_timer_get_time());
         /*****************读取磁场角度*******************/
         // HMC5883L_Data_Update();
@@ -130,6 +131,8 @@ void Task_AHRS(void *parameter)
         kalman_angle[0] = 0.952 * (kalman_angle[0] + Data.Buf_Gyro[0] * 1.0f / 100.0f) + 0.048 *  Q_angle_temp[0];
         kalman_angle[1] = 0.952 * (kalman_angle[1] + Data.Buf_Gyro[1] * 1.0f / 100.0f) + 0.048 *  Q_angle_temp[1];
         kalman_angle[2] = 0.952 * (kalman_angle[2] + Data.Buf_Gyro[2] * 1.0f / 100.0f) + 0.048 *  Q_angle_temp[2];
+        // ESP_LOGI(TAG, "R%.2fP%.2fY%.2f", Q_angle[0], Q_angle[1], Q_angle[2]);
+        // printf("R%.2fP%.2fY%.2f", Q_angle[0], Q_angle[1], Q_angle[2]);
         esp_task_wdt_reset();
         // printf("当前时间为：%lld------------------------5\n", esp_timer_get_time());
         // vTaskDelay(1000 / portTICK_RATE_MS);
@@ -145,6 +148,7 @@ void Task_Show(void *parameter)
         printf("\n");
         // BMP085_Data_Update();
         BMP085_Data_Calculate(&Data.temperature, &Data.pressure, Data.AC_123, Data.AC_456, Data.B1_MD);
+        // ESP_LOGI(TAG, "Roll: %.2f\t Pitch: %.2f\t Yaw: %.2f", Q_angle[0], Q_angle[1], Q_angle[2]);
         ESP_LOGI(TAG, "Roll: %.2f\t kalman_Roll: %.2f", Q_angle[0], Q_angle_temp[0]);
         ESP_LOGI(TAG, "Pitch: %.2f\t kalman_Pitch: %.2f", Q_angle[1], Q_angle_temp[1]);
         ESP_LOGI(TAG, "Yaw: %.2f\t kalman_Yaw: %.2f", Q_angle[2], Q_angle_temp[2]);
