@@ -1,12 +1,13 @@
 // KasBot V1  -  Kalman filter module
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 #include "kf.h"
 
 float  Angle_dif, S;
 float Q_Angle = 0.001f; //0.01f    //0.005f
 float Q_bias = 0.0003f;  //0.003  //0.0003
-float R_measure = 0.03f;
+float R_measure = 0.01f;
 float angle[3] = {0.0f}; // Reset the angle
 float bias = 0.0f; // Reset bias
 float P[2][2] = {{0.0f, 0.0f}, {0.0f, 0.0f}};
@@ -62,4 +63,29 @@ float kalmanCalculate(float newAngle, float newRate, int looptime, int i)
 void kalmanSetAngle(float Angle, int i)
 {
     angle[i] = Angle;
+}
+float Yawinit(float ax, float ay, float az, float mx, float my, float mz)
+{
+    float initialRoll, initialPitch,initialHdg;
+    float cosRoll, sinRoll, cosPitch, sinPitch;
+    float magX, magY;
+
+	// 由加速度计分量得初始 roll和pitch角
+    initialRoll = atan2(-ay, -az);
+    initialPitch = atan2(ax, -az);
+
+	// 计算roll和pitch角的cos和sin值
+    cosRoll = cosf(initialRoll);
+    sinRoll = sinf(initialRoll);
+    cosPitch = cosf(initialPitch);
+    sinPitch = sinf(initialPitch);  
+
+	// 用roll和pitch将磁力计的值修正到水平面上
+    magX = mx * cosPitch + my * sinRoll * sinPitch + mz * cosRoll * sinPitch;
+    magY = my * cosRoll - mz * sinRoll;
+
+	// 航向角初始值
+    initialHdg = atan2f(-magY, magX);
+
+    return initialHdg;
 }

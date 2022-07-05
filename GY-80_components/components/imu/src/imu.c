@@ -6,22 +6,76 @@
 #include "imu.h"
 
 /*************************互补滤波代码宏定义****************************************/
-// #define Kp 1.0f // proportional gain governs rate of convergence to accelerometer/magnetometer
-// #define Ki 0.01f // integral gain governs rate of convergence of gyroscope biases
 float invSqrt(float x);
 volatile float q0 = 1.0f, q1 = 0.0f, q2 = 0.0f, q3 = 0.0f; // quaternion of sensor frame relative to auxiliary frame
 float q0_temp, q1_temp, q2_temp, q3_temp;
+float q0q0,q0q1,q0q2,q0q3;
+float q1q1,q1q2,q1q3;
+float q2q2,q2q3;
+float q3q3;
 static float exInt = 0, eyInt = 0, ezInt = 0;
 static float FRE = 100.0f;
 static float halfT;
-
-#define Kp 3.0f // proportional gain governs rate of convergence toaccelerometer/magnetometer
+static uint8_t bFilterInit = 0;
+#define Kp 1.0f // proportional gain governs rate of convergence toaccelerometer/magnetometer
 // Kp比例增益 决定了加速度计和磁力计的收敛速度
-#define Ki 0.01f // integral gain governs rate of convergenceof gyroscope biases
+#define Ki 0.05f // integral gain governs rate of convergenceof gyroscope biases
 // Ki积分增益 决定了陀螺仪偏差的收敛速度
 
 /*******************************互补滤波*******************************/
-void IMU_AHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz, float *Q_angle)
+void AHRSinit(float ax, float ay, float az, float mx, float my, float mz)
+{
+    float initialRoll, initialPitch;
+    float cosRoll, sinRoll, cosPitch, sinPitch;
+    float magX, magY;
+    float initialHdg, cosHeading, sinHeading;
+
+	// 由加速度计分量得初始 roll和pitch角
+    initialRoll = atan2(-ay, -az);
+    initialPitch = atan2(ax, -az);
+
+	// 计算roll和pitch角的cos和sin值
+    cosRoll = cosf(initialRoll);
+    sinRoll = sinf(initialRoll);
+    cosPitch = cosf(initialPitch);
+    sinPitch = sinf(initialPitch);  
+
+	// 用roll和pitch将磁力计的值修正到水平面上
+    magX = mx * cosPitch + my * sinRoll * sinPitch + mz * cosRoll * sinPitch;
+    magY = my * cosRoll - mz * sinRoll;
+
+	// 航向角初始值
+    initialHdg = atan2f(-magY, magX);
+
+	// 计算0.5倍的roll、pitch和yaw角的cos和sin值
+	// 为接下来通过姿态角反解四元数做准备
+    cosRoll = cosf(initialRoll * 0.5f);
+    sinRoll = sinf(initialRoll * 0.5f);
+    cosPitch = cosf(initialPitch * 0.5f);
+    sinPitch = sinf(initialPitch * 0.5f);
+    cosHeading = cosf(initialHdg * 0.5f);
+    sinHeading = sinf(initialHdg * 0.5f);
+
+	// 反解四元数
+    q0 = cosRoll * cosPitch * cosHeading + sinRoll * sinPitch * sinHeading;
+    q1 = sinRoll * cosPitch * cosHeading - cosRoll * sinPitch * sinHeading;
+    q2 = cosRoll * sinPitch * cosHeading + sinRoll * cosPitch * sinHeading;
+    q3 = cosRoll * cosPitch * sinHeading - sinRoll * sinPitch * cosHeading;
+
+    // auxillary variables to reduce number of repeated operations, for 1st pass
+    q0q0 = q0 * q0;
+    q0q1 = q0 * q1;
+    q0q2 = q0 * q2;
+    q0q3 = q0 * q3;
+    q1q1 = q1 * q1;
+    q1q2 = q1 * q2;
+    q1q3 = q1 * q3;
+    q2q2 = q2 * q2;
+    q2q3 = q2 * q3;
+    q3q3 = q3 * q3;
+}
+
+void AHRS_update(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz, float *Q_angle)
 {
 	// 参考网页：http://www.crazepony.com/wiki/software-algorithm.html
 	float norm;
@@ -29,17 +83,12 @@ void IMU_AHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, 
 	float vx, vy, vz, wx, wy, wz;
 	float ex, ey, ez;
 	halfT = 0.5f *(1.0f / FRE);
-	// 先把这些用得到的值算好
-	float q0q0 = q0 * q0;
-	float q0q1 = q0 * q1;
-	float q0q2 = q0 * q2;
-	float q0q3 = q0 * q3;
-	float q1q1 = q1 * q1;
-	float q1q2 = q1 * q2;
-	float q1q3 = q1 * q3;
-	float q2q2 = q2 * q2;
-	float q2q3 = q2 * q3;
-	float q3q3 = q3 * q3;
+
+	// 检查是否初始化
+	if(bFilterInit == 0) {
+        AHRSinit(ax,ay,az,mx,my,mz);
+        bFilterInit = 1;
+    }
 	//将陀螺仪数据单位转换为弧度每秒（rad/s）
 	gx *= (M_PI / 180.f);
 	gy *= (M_PI / 180.f);
@@ -56,11 +105,17 @@ void IMU_AHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, 
 	mz = mz * norm;
 	// compute reference direction of flux
 	/*计算地理坐标系下的磁场矢量b-xyz（参考值）。因为地理地磁水平夹角，我们已知是0度（抛去磁偏角的因素，固定向北），
-	我定义b-y指向正北，所以by=某值，bx=0但地理参考地磁矢量在垂直面上也有分量bz，地球上每个地方都是不一样的。
+	我定义b-x指向正北，所以bx=某值，by=0但地理参考地磁矢量在垂直面上也有分量bz，地球上每个地方都是不一样的。
 	我们无法得知，也就无法用来融合（有更适合做垂直方向修正融合的加速度计），所以直接从测量值hz上复制过来，bz=hz。
 	磁场水平分量，参考值和测量值的大小应该是一致的(bx*bx) + (by*by)) = ((hx*hx) + (hy*hy))。
-	因为bx=0，所以就简化成(by*by)  = ((hx*hx) + (hy*hy))。可算出by。下面可以修改b-y和b-x那个轴指向正北。
+	因为by=0，所以就简化成(bx*bx)  = ((hx*hx) + (hy*hy))。可算出bx。下面可以修改b-y和b-x那个轴指向正北。
 	*/
+	/*
+	通过旋转矩阵，将机体坐标系下的测量值m-xyz转换为地理坐标系下的h-xyz
+	此时当x指向正北时，理论上，bx = sqrtf((hx*hx) + (hy*hy)); by = 0;
+	此时当y指向正北时，理论上，by = sqrtf((hx*hx) + (hy*hy)); bx = 0;
+	*/
+	// 用m-xyz与旋转矩阵gRb相乘(gRb表示从b系到g系的旋转矩阵：b系表示机体坐标系，g系表示地理坐标系)
 	hx = 2.0f * mx * (0.5f - q2q2 - q3q3) + 2.0f * my * (q1q2 - q0q3) + 2.0f * mz * (q1q3 + q0q2);
 	hy = 2.0f * mx * (q1q2 + q0q3) + 2.0f * my * (0.5f - q1q1 - q3q3) + 2.0f * mz * (q2q3 - q0q1);
 	hz = 2.0f * mx * (q1q3 - q0q2) + 2.0f * my * (q2q3 + q0q1) + 2.0f * mz * (0.5f - q1q1 - q2q2);
@@ -69,40 +124,50 @@ void IMU_AHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, 
 	bz = hz;
 
 	/*
-	这是把四元数换算成《方向余弦矩阵》中的第三列的三个元素。
-	根据余弦矩阵和欧拉角的定义，地理坐标系的重力向量，转到机体坐标系，正好是这三个元素。
-	所以这里的vx\y\z，其实就是当前的欧拉角（即四元数）的机体坐标参照系上，换算出来的重力单位向量。
+	用b-xyz与旋转矩阵bRg相乘(bRg表示从g系到b系的旋转矩阵：b系表示机体坐标系，g系表示地理坐标系)
+	wx, wy, wz为将 bx与bz又重新 转换到飞行器参考系后 各个坐标轴上的分量。（地磁场）
 	*/
-	// estimated direction of gravity and flux (v and w)
-	// vx, vy, vz为将 标准单位重力 转换到飞行器参考系后 各个坐标轴上的分量（重力加速度）
-	vx = 2.0f * (q1q3 - q0q2);
-	vy = 2.0f * (q0q1 + q2q3);
-	vz = q0q0 - q1q1 - q2q2 + q3q3;
-	//wx, wy, wz为将 bx与bz又重新 转换到飞行器参考系后 各个坐标轴上的分量。（地磁场）
 	wx = 2.0f * bx * (0.5f - q2q2 - q3q3) + 2.0f * bz * (q1q3 - q0q2);
 	wy = 2.0f * bx * (q1q2 - q0q3) + 2.0f * bz * (q0q1 + q2q3);
 	wz = 2.0f * bx * (q0q2 + q1q3) + 2.0f * bz * (0.5f - q1q1 - q2q2);
-	// error is sum of cross product between reference direction of fields and direction measured by sensors
-	ex = (ay * vz - az * vy) + (my * wz - mz * wy);
-	ey = (az * vx - ax * vz) + (mz * wx - mx * wz);
-	ez = (ax * vy - ay * vx) + (mx * wy - my * wx);
+	// wx = 2.0f * by * (q1q2 + q0q3) + 2.0f * bz * (q1q3 - q0q2);
+	// wy = 2.0f * by * (0.5f - q1q1 - q3q3) + 2.0f * bz * (q0q1 + q2q3);
+	// wz = 2.0f * by * (q2q3 - q0q1) + 2.0f * bz * (0.5f - q1q1 - q2q2);
+
 	/*
+	这是把四元数换算成《方向余弦矩阵》中的第三列的三个元素。
+	根据余弦矩阵和欧拉角的定义，地理坐标系的重力向量，转到机体坐标系，正好是这三个元素。
+	所以这里的vx\y\z，其实就是当前的欧拉角（即四元数）的机体坐标参照系上，换算出来的重力单位向量。
+	v-xyz(b系) = bRg(旋转矩阵) * v-xyz(g系);
+	v-xyz在g系下为[0,0,1];
+	因此v-xyz(b系)就为bRg(旋转矩阵)的第三列
+	*/
+	vx = 2.0f * (q1q3 - q0q2);
+	vy = 2.0f * (q0q1 + q2q3);
+	vz = q0q0 - q1q1 - q2q2 + q3q3;
+
+	// error is sum of cross product between reference direction of fields and direction measured by sensors
+	/*
+	第一部分为加速度计的误差，第二部分为磁力计的误差
 	axyz是机体坐标参照系上，加速度计测出来的重力向量，也就是实际测出来的重力向量。
 	axyz是测量得到的重力向量，vxyz是陀螺积分后的姿态来推算出的重力向量，它们都是机体坐标参照系上的重力向量。
 	那它们之间的误差向量，就是陀螺积分后的姿态和加计测出来的姿态之间的误差。
 	向量间的误差，可以用向量叉积（也叫向量外积、叉乘）来表示，exyz就是两个重力向量的叉积。
-	这个叉积向量仍旧是位于机体坐标系上的，而陀螺积分误差也是在机体坐标系，而且叉积的大小与陀螺积分误差成正比，正好拿来纠正陀螺。（你可以自己拿东西想象一下）由于陀螺是对机体直接积分，所以对陀螺的纠正量会直接体现在对机体坐标系的纠正。
+	这个叉积向量仍旧是位于机体坐标系上的，而陀螺积分误差也是在机体坐标系，而且叉积的大小与陀螺积分误差成正比，正好拿来纠正陀螺。
+	由于陀螺是对机体直接积分，所以对陀螺的纠正量会直接体现在对机体坐标系的纠正。
 	*/
+	ex = (ay * vz - az * vy) + (my * wz - mz * wy);
+	ey = (az * vx - ax * vz) + (mz * wx - mx * wz);
+	ez = (ax * vy - ay * vx) + (mx * wy - my * wx);
 	exInt = exInt + ex * Ki * halfT * 2;
 	eyInt = eyInt + ey * Ki * halfT * 2;
 	ezInt = ezInt + ez * Ki * halfT * 2;
-	// adjusted gyroscope measurements
 	// PI调节陀螺仪数据
 	gx = gx + Kp * ex + exInt;
 	gy = gy + Kp * ey + eyInt;
 	gz = gz + Kp * ez + ezInt;
 
-	// 四元数微分方程
+	// 一阶龙格库塔求解四元数微分方程
 	q0_temp = q0 + (-q1 * gx - q2 * gy - q3 * gz) * halfT;
 	q1_temp = q1 + (q0 * gx + q2 * gz - q3 * gy) * halfT;
 	q2_temp = q2 + (q0 * gy - q1 * gz + q3 * gx) * halfT;

@@ -8,6 +8,7 @@
 #include "math.h"
 #include "esp_timer.h"
 #include "esp_log.h"
+#include "sys/unistd.h"
 
 #include "init_Read.h"
 #include "register.h"
@@ -80,14 +81,6 @@ void Init_AHRS(void)
     //初始化ADXL345
     while (!Init_ADXL345());
     // while (!ADXL345_Auto_Adjust());
-    //初始化ADXL345之后对卡尔曼参数进行初始化
-    ADXL345_Fifo_Read(Data.ACC_Gavity, 16);
-    Data.ACC_Angle[0] = ADXL345_Angle(Data.ACC_Gavity, 1);
-    Data.ACC_Angle[1] = ADXL345_Angle(Data.ACC_Gavity, 2);
-    kalmanSetAngle(Data.ACC_Angle[0], 0);
-    kalmanSetAngle(Data.ACC_Angle[1], 1);
-    kalman_angle[0] = Data.ACC_Angle[0];
-    kalman_angle[1] = Data.ACC_Angle[1];
     printf("ADXL345 初始化完成\n");
     //初始化L3G4200D
     while (!Init_L3G4200D(Data.Buf_drift));
@@ -99,9 +92,15 @@ void Init_AHRS(void)
     Init_HMC5883L();
     HMC5883L_SELFTEST(Data.Offset, Data.K_XYZ);
     printf("HMC5883L 初始化完成\n");
-    HMC5883L_READ(Data.mag_Angle, Data.mag_XYZ, Data.Offset, Data.K_XYZ);
-    kalmanSetAngle(Data.mag_Angle[0], 2);
-    kalman_angle[2] = Data.mag_Angle[0];
+    // //对卡尔曼参数进行初始化
+    // ADXL345_Fifo_Read(Data.ACC_Gavity, 16);
+    // HMC5883L_READ(Data.mag_Angle, Data.mag_XYZ, Data.Offset, Data.K_XYZ);
+    // Data.ACC_Angle[0] = ADXL345_Angle(Data.ACC_Gavity, 1);
+    // Data.ACC_Angle[1] = ADXL345_Angle(Data.ACC_Gavity, 2);
+    // kalmanSetAngle(Data.ACC_Angle[0], 0);
+    // kalmanSetAngle(Data.ACC_Angle[1], 1);
+    // kalmanSetAngle(Yawinit(Data.ACC_Gavity[0], Data.ACC_Gavity[1], Data.ACC_Gavity[2],
+    //                     Data.mag_XYZ[0], Data.mag_XYZ[1], Data.mag_XYZ[2]), 2);
 }
 /***************************AHRS*********************************/
 void Task_AHRS(void *parameter)
@@ -121,16 +120,20 @@ void Task_AHRS(void *parameter)
         // HMC5883L_Data_Update();
         HMC5883L_READ(Data.mag_Angle, Data.mag_XYZ, Data.Offset, Data.K_XYZ);
 
-        IMU_AHRSupdate(Data.Buf_Gyro[0], Data.Buf_Gyro[1], Data.Buf_Gyro[2],
+        AHRS_update(Data.Buf_Gyro[0], Data.Buf_Gyro[1], Data.Buf_Gyro[2],
                         Data.ACC_Gavity[0], Data.ACC_Gavity[1], Data.ACC_Gavity[2],
                         Data.mag_XYZ[0], Data.mag_XYZ[1], Data.mag_XYZ[2], Q_angle);
-
-        Q_angle_temp[0] = kalmanCalculate(Q_angle[0], Data.Buf_Gyro[0], 10, 0);
-        Q_angle_temp[1] = kalmanCalculate(Q_angle[1], Data.Buf_Gyro[1], 10, 1);
-        Q_angle_temp[2] = kalmanCalculate(Q_angle[2], Data.Buf_Gyro[2], 10, 2);
-        kalman_angle[0] = 0.952 * (kalman_angle[0] + Data.Buf_Gyro[0] * 1.0f / 100.0f) + 0.048 *  Q_angle_temp[0];
-        kalman_angle[1] = 0.952 * (kalman_angle[1] + Data.Buf_Gyro[1] * 1.0f / 100.0f) + 0.048 *  Q_angle_temp[1];
-        kalman_angle[2] = 0.952 * (kalman_angle[2] + Data.Buf_Gyro[2] * 1.0f / 100.0f) + 0.048 *  Q_angle_temp[2];
+        // IMU_update(Data.Buf_Gyro[0], Data.Buf_Gyro[1], Data.Buf_Gyro[2],
+        //                 Data.ACC_Gavity[0], Data.ACC_Gavity[1], Data.ACC_Gavity[2], Q_angle);
+        // Data.ACC_Angle[0] = ADXL345_Angle(Data.ACC_Gavity, 1);
+        // Data.ACC_Angle[1] = ADXL345_Angle(Data.ACC_Gavity, 2);
+        // Q_angle_temp[0] = kalmanCalculate(Data.ACC_Angle[0], Data.Buf_Gyro[0], 10, 0);
+        // Q_angle_temp[1] = kalmanCalculate(Data.ACC_Angle[1], Data.Buf_Gyro[1], 10, 1);
+        // Q_angle_temp[2] = kalmanCalculate(Yawinit(Data.ACC_Gavity[0], Data.ACC_Gavity[1], Data.ACC_Gavity[2],
+        //                 Data.mag_XYZ[0], Data.mag_XYZ[1], Data.mag_XYZ[2]), Data.Buf_Gyro[2], 10, 2);
+        // kalman_angle[0] = 0.952 * (kalman_angle[0] + Data.Buf_Gyro[0] * 1.0f / 100.0f) + 0.048 *  Q_angle_temp[0];
+        // kalman_angle[1] = 0.952 * (kalman_angle[1] + Data.Buf_Gyro[1] * 1.0f / 100.0f) + 0.048 *  Q_angle_temp[1];
+        // kalman_angle[2] = 0.952 * (kalman_angle[2] + Data.Buf_Gyro[2] * 1.0f / 100.0f) + 0.048 *  Q_angle_temp[2];
         // ESP_LOGI(TAG, "R%.2fP%.2fY%.2f", Q_angle[0], Q_angle[1], Q_angle[2]);
         // printf("R%.2fP%.2fY%.2f", Q_angle[0], Q_angle[1], Q_angle[2]);
         esp_task_wdt_reset();
@@ -148,11 +151,11 @@ void Task_Show(void *parameter)
         printf("\n");
         // BMP085_Data_Update();
         BMP085_Data_Calculate(&Data.temperature, &Data.pressure, Data.AC_123, Data.AC_456, Data.B1_MD);
-        // ESP_LOGI(TAG, "Roll: %.2f\t Pitch: %.2f\t Yaw: %.2f", Q_angle[0], Q_angle[1], Q_angle[2]);
-        ESP_LOGI(TAG, "Roll: %.2f\t kalman_Roll: %.2f", Q_angle[0], Q_angle_temp[0]);
-        ESP_LOGI(TAG, "Pitch: %.2f\t kalman_Pitch: %.2f", Q_angle[1], Q_angle_temp[1]);
-        ESP_LOGI(TAG, "Yaw: %.2f\t kalman_Yaw: %.2f", Q_angle[2], Q_angle_temp[2]);
-        ESP_LOGI(TAG, "比例融合后的Kalman姿态角为：Roll = %.2f, Pitch = %.2f, Yaw = %.2f\n", kalman_angle[0], kalman_angle[1], kalman_angle[2]);
+        ESP_LOGI(TAG, "Roll: %.2f\t Pitch: %.2f\t Yaw: %.2f", Q_angle[0], Q_angle[1], Q_angle[2]);
+        // ESP_LOGI(TAG, "Roll: %.2f\t kalman_Roll: %.2f", Q_angle[0], Q_angle_temp[0]);
+        // ESP_LOGI(TAG, "Pitch: %.2f\t kalman_Pitch: %.2f", Q_angle[1], Q_angle_temp[1]);
+        // ESP_LOGI(TAG, "Yaw: %.2f\t kalman_Yaw: %.2f", Q_angle[2], Q_angle_temp[2]);
+        // ESP_LOGI(TAG, "比例融合后的Kalman姿态角为：Roll = %.2f, Pitch = %.2f, Yaw = %.2f\n", kalman_angle[0], kalman_angle[1], kalman_angle[2]);
 
         ESP_LOGI(TAG, "三轴角速度为：X = %.3f, Y = %.3f, Z = %.3f", Data.Buf_Gyro[0], Data.Buf_Gyro[1], Data.Buf_Gyro[2]);
         ESP_LOGI(TAG, "三轴加速度为：Xg = %.3f, Yg = %.3f, Zg = %.3f", Data.ACC_Gavity[0], Data.ACC_Gavity[1], Data.ACC_Gavity[2]);
